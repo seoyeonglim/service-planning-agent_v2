@@ -35,6 +35,7 @@
   - **변경 범위:** 실제로 고친 문서·섹션·ID 목록. 먼저 `python3 .claude/scripts/impact_scan.py [대상ID] --md`로 확인 대상 파일 체크리스트를 생성해 초안으로 쓰고, 각 파일을 확인·수정한 뒤 결과를 기록한다 (작성 후 `validate_traceability.py`로 ID 누락 재확인)
   - **사유:** ADR-## 링크, 없으면 근거(회의록·요청 출처) 직접 기입
   - **승인:** 사용자 확인 날짜
+- **변경·추가·삭제 요청 처리 절차(v1.0 확정 이후 필수):** 사용자가 자연어로 변경/추가/삭제를 요청하면("~바꿔주세요", "~도 들어가야 해요", "~는 빼주세요") 어떤 문서도 고치기 전에 반드시 Read `.claude/skills/14_change_request.md` 후 그 프로토콜을 따른다. **공통:** 기존 REQ의 변경인지 신규 추가인지 사용자에게 판별 확정. **변경(A플로우):** `impact_scan.py`로 영향 범위 보고 → AS-IS/TO-BE 변경안 승인 → PRD부터 수정 → 연쇄 문서를 파일 단위로 컨펌받으며 수정. **삭제(A플로우 변형):** TO-BE가 "폐기"인 변경으로 처리 — 레지스트리 행은 남기고 우선순위 칸만 `폐기(CR-###)`로(물리 삭제·ID 재사용 금지), 활성 문서 참조는 제거하고 기록 문서(CHANGELOG·ADR)는 보존. **추가(B플로우):** ID 채번·우선순위·포함 시점(v1.x/v2) 승인 + ADR → EC·TC 포함해 정의 → 산출물 단계 순서(IA→플로우→화면명세→FS→WBS)로 파일 단위 컨펌 전파. **공통 마감:** `--strict` 검증 ❌ 0 + CR 기록.
 - 미결(❓) 항목은 기획서에 남겨 둔다. "미결 없음"이 아닐 때는 다음 단계로 넘어가지 않는다.
 
 #### 질문 방식 규칙
@@ -266,7 +267,7 @@ python3 .claude/scripts/validate_traceability.py --strict --report
 
 ## 스킬 유지보수 (.claude → .codex 동기화)
 
-번호 스킬(01~13)의 원본은 `.claude/skills/NN_name.md` **하나뿐**이다. Codex용 `.codex/skills/NN-name/SKILL.md`는 자동 생성물이므로 직접 수정하지 않는다.
+번호 스킬(01~14)의 원본은 `.claude/skills/NN_name.md` **하나뿐**이다. Codex용 `.codex/skills/NN-name/SKILL.md`는 자동 생성물이므로 직접 수정하지 않는다.
 
 - 스킬을 고친 뒤(또는 새 스킬 추가 시) 동기화: `python3 .claude/scripts/sync_codex_skills.py`
 - `Edit/Write/MultiEdit` 시 `PostToolUse` 훅이 `--quiet`로 자동 동기화한다(변경 없으면 침묵)
