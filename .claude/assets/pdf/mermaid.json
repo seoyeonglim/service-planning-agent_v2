@@ -1,0 +1,29 @@
+{
+  "theme": "base",
+  "themeVariables": {
+    "fontFamily": "Apple SD Gothic Neo, Noto Sans KR, sans-serif",
+    "primaryColor": "#E6F6EE",
+    "primaryBorderColor": "#00A862",
+    "primaryTextColor": "#1F2937",
+    "lineColor": "#00713F",
+    "secondaryColor": "#F0FAF4",
+    "tertiaryColor": "#F8FAFC",
+    "taskBkgColor": "#00A862",
+    "taskBorderColor": "#00713F",
+    "taskTextColor": "#FFFFFF",
+    "taskTextLightColor": "#FFFFFF",
+    "taskTextOutsideColor": "#1F2937",
+    "taskTextDarkColor": "#1F2937",
+    "activeTaskBkgColor": "#00713F",
+    "activeTaskBorderColor": "#00713F",
+    "doneTaskBkgColor": "#A7E0C4",
+    "doneTaskBorderColor": "#00713F",
+    "critBkgColor": "#E53E3E",
+    "critBorderColor": "#9B2C2C",
+    "sectionBkgColor": "#F8FAFC",
+    "altSectionBkgColor": "#E6F6EE",
+    "sectionBkgColor2": "#F0FAF4",
+    "gridColor": "#E5E7EB",
+    "todayLineColor": "#E53E3E"
+  }
+}

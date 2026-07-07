@@ -1,0 +1,50 @@
+# OS
+.DS_Store
+.DS_Store?
+._*
+Thumbs.db
+ehthumbs.db
+
+# IDE / Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+
+# Build / Output
+dist/
+build/
+*.log
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Misc
+*.bak
+*.tmp
+
+# 생성물: 추적성 검증 리포트 (validate_traceability.py --report)
+_traceability_report.md
+# Office 임시 잠금 파일
+~$*
+
+
+# OMC
+.omc/
+
+# Env
+.env
+# 고객사 프로젝트 산출물 — git 추적 제외 (로컬 관리)
+docs/kyobo_lifeplanet_ai_salesbot/
