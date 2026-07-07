@@ -18,7 +18,7 @@
   python3 .claude/scripts/impact_scan.py REQ-041 --md            # CR에 붙여넣을 마크다운 체크리스트로 출력
 
 제외 폴더: _archive/(과거 버전), ref/(고객사 원자료) — 변경 대상이 아니므로 스캔하지 않음
-제외 파일: _traceability_report.md(자동 생성물)
+제외 파일: _traceability_report.md·_consistency_report.md(자동 생성물)
 
 종료코드: 0=정상, 1=해당 ID가 어디에도 없음(오타 가능성)
 """
@@ -36,7 +36,7 @@ from validate_traceability import extract_refs, read
 FS_RE = re.compile(r"FS-\d+")
 
 EXCLUDE_DIRS = {"_archive", "ref"}
-EXCLUDE_FILES = {"_traceability_report.md"}
+EXCLUDE_FILES = {"_traceability_report.md", "_consistency_report.md"}
 SCAN_SUFFIXES = {".md", ".html"}
 
 ID_FORM = re.compile(r"^(REQ|EC|TC|SC|FS)-\d+(?:-\d+)?$")

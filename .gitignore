@@ -35,7 +35,7 @@ venv/
 *.bak
 *.tmp
 
-# 생성물: 추적성 검증 리포트 (validate_traceability.py --report)
+# 생성물: 검증 리포트 (validate_traceability.py / consistency_check.py --report)
 _traceability_report.md
 _consistency_report.md
 # Office 임시 잠금 파일

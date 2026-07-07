@@ -86,7 +86,7 @@ argument-hint: "[project-name] [sc-id 또는 req-id] [label]"
 
 ```markdown
 <!-- SC-ID | 화면명 - 상태 -->
-[와이어프레임: 화면명](../../assets/wireframes/wf-SC-ID-상태명.html)
+[와이어프레임: 화면명](../assets/wireframes/wf-SC-ID-상태명.html)
 ```
 
 연결 후 **AskUserQuestion**으로 다음 단계를 확인한다:

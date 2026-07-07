@@ -121,7 +121,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 ### 스크립트
 
 - **`validate_traceability.py`** — 요구사항 추적성 채점기: 고아(정의만 있음)·유령(정의 없이 참조) 적발, MUST 커버리지 검사. `--strict`가 Phase 게이트. → [동작 원리 상세](guide/traceability.md)
-- **`consistency_check.py`** — 내용 정합성 검사기(기계 판정): FS 우선순위 상속·단계 일치, MUST FS의 WBS 배치, 화면별 산출물 존재, 폐기 REQ 활성 참조, ID 중복. 문장 의미 충돌은 스킬 15의 에이전트 의미 대조가 담당
+- **`consistency_check.py`** — 내용 정합성 검사기(기계 판정): FS 우선순위 상속·단계 일치, MUST FS의 WBS 배치, 화면별 산출물 존재, 폐기 REQ 활성 참조, FS ID 중복. 문장 의미 충돌은 스킬 15의 에이전트 의미 대조가 담당
 - **`impact_scan.py`** — 변경 영향 범위 수색기: "이 ID를 바꾸면 어느 문서를 같이 봐야 하지?"에 파일+줄 번호 체크리스트로 답함. → [동작 원리 상세](guide/impact-scan.md)
 - **`sync_codex_skills.py`** — `.claude/skills/NN_name.md` 원본에서 `.codex/skills/NN-name/SKILL.md`를 자동 생성. `--check`(드리프트 점검), `--prune`(원본 삭제분 정리)
 - **`make_pdf.sh`** — 기획서 md → 고객 전달용 PDF (Mermaid→PNG 치환 → pandoc → weasyprint). 사전 요구: `brew install pandoc weasyprint`
