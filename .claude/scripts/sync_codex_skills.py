@@ -4,7 +4,7 @@
 .claude/skills  →  .codex/skills 동기화 스크립트 (서비스 기획 에이전트)
 
 하는 일 (쉽게):
-  번호 스킬(01~11)의 원본은 `.claude/skills/NN_name.md` 하나뿐이다.
+  번호 스킬(NN_*.md 전부 — 개수 무관)의 원본은 `.claude/skills/NN_name.md` 하나뿐이다.
   Codex CLI는 `.codex/skills/NN-name/SKILL.md`(프론트매터 포함)를 읽는데,
   지금까지는 이 복제본을 손으로 맞춰야 했다. 이 스크립트가 원본에서 자동 생성한다.
 

@@ -5,7 +5,7 @@ AI 코딩 에이전트(Claude Code / Codex CLI)를 **"10년 경력의 시니어 
 핵심 아이디어는 하나입니다 — **AI가 문서를 바로 쓰지 못하게 막고, 실제 기획자처럼 "질문 → 확인 → 산출물 → 검증" 순서를 강제하는 것.** 이를 위해 세 겹의 장치로 구성됩니다:
 
 1. **`CLAUDE.md`** — 전체 워크플로우 헌법 (Phase 0~4 순서, 게이트, 금지사항)
-2. **`.claude/skills/` 14개 스킬** — 각 단계의 상세 실행 매뉴얼 (CLAUDE.md가 단계마다 "이 파일을 읽어라"고 지시)
+2. **`.claude/skills/` 15개 스킬** — 각 단계의 상세 실행 매뉴얼 (CLAUDE.md가 단계마다 "이 파일을 읽어라"고 지시)
 3. **훅(hook) + 파이썬 스크립트** — 규칙 준수를 사람이 아닌 기계가 감시 (추적성 자동 검증, 스킬 동기화)
 
 모든 산출물은 추적 ID로 사슬처럼 연결되며, 이 사슬이 끊기면 다음 단계로 진행할 수 없습니다.
@@ -26,24 +26,24 @@ FS-###   기능명세   →  WBS 주차 배치
 |---|---|---|
 | 📖 규칙서 | `CLAUDE.md`, `AGENTS.md`, `.claude/skills/` | AI에게 "이 순서로, 이렇게 일해라"를 알려주는 매뉴얼 |
 | ⚙️ 자동 도구 | `.claude/scripts/`, `.claude/hooks/`, 설정 파일 | 규칙이 지켜졌는지 자동으로 검사·정리해주는 프로그램 |
-| 📂 작업 결과물 | `docs/` | 실제 프로젝트에서 만들어진 기획 문서·화면들 (git 제외, 로컬 보관) |
+| 📂 작업 결과물 | `docs/` | 실제 프로젝트에서 만들어진 기획 문서·화면들 (각 프로젝트가 독립 저장소로 별도 관리) |
 | 📚 사람용 문서 | `README.md`, `guide/` | 이 워크플로우가 어떻게 돌아가는지 사람에게 설명 |
 
 ```
 CLAUDE.md                      # 전체 작업 순서와 규칙 (가장 중요한 파일)
 AGENTS.md                      # 위와 같은 내용의 Codex(다른 AI 도구)용 복사본
 .claude/
-├── skills/01~14_*.md          # 단계별 상세 매뉴얼 14개 + visual_generation/
+├── skills/01~15_*.md          # 단계별 상세 매뉴얼 15개 + visual_generation/
 ├── scripts/                   # 검사기·스캐너·동기화·PDF 변환 (아래 자동화 장치 참조)
 ├── hooks/session_start.sh     # 시작할 때 "지금 어디까지 했더라?" 현황판
 └── settings.local.json        # 검사기들이 자동으로 돌아가도록 연결하는 설정
 .codex/skills/                 # 자동 생성된 복사본 (직접 수정 금지!)
 .mcp.json                      # 고객이 준 워드/엑셀/PPT 파일을 읽을 수 있게 하는 설정
 guide/                         # 사람용 상세 가이드 (스킬·검증·스캔 동작 원리)
-docs/[프로젝트명]/              # 프로젝트별 산출물: prd/ ui/ fnspec/ wbs/ sow/ ref/
+docs/[프로젝트명]/              # 프로젝트별 산출물: prd/ ui/ fnspec/ wbs/ sow/ meetings/(회의록) assets/(와이어프레임) ref/(고객사 원자료)
 ```
 
-> `docs/`는 고객사 정보가 담기므로 git에는 올라가지 않고 내 컴퓨터에만 보관됩니다. 하위 폴더 구조는 [사용 방법](#사용-방법)의 저장 규칙 참조.
+> `docs/`는 고객사 정보가 담기므로 이 워크플로우 레포에는 올라가지 않습니다. 대신 각 프로젝트 폴더가 **그 자리에서 독립 git 저장소**가 되어 팀 GitHub(wrtnlabs)의 비공개 저장소로 따로 관리됩니다 — 화이트리스트 추적(prd·ui·fnspec·meetings·assets/wireframes만), ref/(고객사 원자료·PII)·sow/·wbs/ 등 나머지는 로컬 전용. 하위 폴더 구조는 [사용 방법](#사용-방법)의 저장 규칙 참조.
 
 ---
 
@@ -56,6 +56,7 @@ Phase 2  UI 문서 4종          → 스킬 07→08→09→10
 Phase 3  UI 화면 생성          → 스킬 11 + visual_generation
 Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 운영     변경 관리            → 스킬 14 (v1.0 확정 후 변경·추가·삭제 요청 처리)
+운영     정합성 검증          → 스킬 15 (3계층: 추적성 → 기계 정합성 → 의미 대조)
 ```
 
 - Phase 3과 Phase 4는 서로 의존하지 않아 **병행 가능**합니다.
@@ -68,6 +69,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 - 각 기능은 `REQ-###` ID로 관리하고, 이름이 바뀌어도 ID는 유지
 - 제안한 규칙/결정은 **ADR(결정사항 로그)** 형태로 기록 — 배경/대안/선택/이유/영향
 - **버전 생애주기**: 초안(v0.x)은 git 커밋으로 변경 추적, v1.0 확정 이후엔 변경 1건마다 **변경 기록(CR-###)**을 `prd/CHANGELOG.md`에 작성 (대상/AS-IS/TO-BE/변경 범위/사유/승인 6항목)
+- **문서 서열(내용 충돌 중재)**: PRD > UI 문서 > 기능명세서·화면 HTML > WBS — 내용이 어긋나면 상류가 옳고 하류를 고침, 상류(PRD) 수정은 CR로
 - 미결(❓) 항목이 남아 있으면 다음 단계 진입 금지
 - 선택지가 있는 질문은 반드시 `AskUserQuestion` 도구 사용
 
@@ -103,6 +105,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 | Phase 4 | 12 기능명세서 | REQ를 FS-###로 분해 — 입력→처리→출력→예외 4칸 완결 |
 | | 13 WBS 작성 | Epic=REQ, Story=FS를 가용일 기준 주차에 배치 + 리소스판 |
 | 운영 | 14 변경 요청 처리 | v1.0 이후 자연어 요청을 판별(변경 A / 삭제=A변형·폐기 / 추가 B) 후 파일별 컨펌으로 반영 |
+| 운영 | 15 내용 정합성 검증 | 3계층(추적성→기계 정합성→의미 대조)으로 문서 간 충돌 적발 — [결정]은 건별 사용자 확인 |
 
 ---
 
@@ -118,6 +121,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 ### 스크립트
 
 - **`validate_traceability.py`** — 요구사항 추적성 채점기: 고아(정의만 있음)·유령(정의 없이 참조) 적발, MUST 커버리지 검사. `--strict`가 Phase 게이트. → [동작 원리 상세](guide/traceability.md)
+- **`consistency_check.py`** — 내용 정합성 검사기(기계 판정): FS 우선순위 상속·단계 일치, MUST FS의 WBS 배치, 화면별 산출물 존재, 폐기 REQ 활성 참조, ID 중복. 문장 의미 충돌은 스킬 15의 에이전트 의미 대조가 담당
 - **`impact_scan.py`** — 변경 영향 범위 수색기: "이 ID를 바꾸면 어느 문서를 같이 봐야 하지?"에 파일+줄 번호 체크리스트로 답함. → [동작 원리 상세](guide/impact-scan.md)
 - **`sync_codex_skills.py`** — `.claude/skills/NN_name.md` 원본에서 `.codex/skills/NN-name/SKILL.md`를 자동 생성. `--check`(드리프트 점검), `--prune`(원본 삭제분 정리)
 - **`make_pdf.sh`** — 기획서 md → 고객 전달용 PDF (Mermaid→PNG 치환 → pandoc → weasyprint). 사전 요구: `brew install pandoc weasyprint`
@@ -157,11 +161,15 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 | 와이어프레임·주석 도해 | `docs/[프로젝트명]/assets/wireframes/` |
 | 기능명세서 | `docs/[프로젝트명]/fnspec/` |
 | WBS | `docs/[프로젝트명]/wbs/` |
+| 회의록 (협의·미팅 기록) | `docs/[프로젝트명]/meetings/` |
+| 고객사 원자료 (git 추적 안 함 — 로컬 전용) | `docs/[프로젝트명]/ref/` |
+
+> **형상관리 이중 구조**: 워크플로우 레포에는 `docs/` 하위 프로젝트가 `.gitignore`로 제외되어 뼈대만 올라갑니다. 각 프로젝트 폴더는 그 자리에서 독립 git 저장소로 초기화해 팀 GitHub(wrtnlabs) 비공개 저장소로 따로 푸시합니다. 프로젝트 저장소에는 **prd · ui · fnspec · meetings · assets/wireframes만 추적**(화이트리스트)하고 ref(원자료)·sow(계약)·wbs(내부 일정)·diagrams·_archive는 로컬 전용입니다. 프로젝트 작업 중 "커밋해/푸시해"는 그 프로젝트 저장소에만 반영되며, 푸시 전 고객 PII(상담 데이터·이메일 등)가 스테이징되지 않았는지 점검하는 게이트를 거칩니다.
 
 ---
 
 ## 상세 가이드
 
-- **[guide/skills.md](guide/skills.md)** — 스킬 상세 (01~14 + visual_generation): 각 스킬의 규칙·게이트·산출물 형식
+- **[guide/skills.md](guide/skills.md)** — 스킬 상세 (01~15 + visual_generation): 각 스킬의 규칙·게이트·산출물 형식
 - **[guide/traceability.md](guide/traceability.md)** — 추적성 검증의 동작 원리: validate_traceability.py가 무엇을 어떻게 검사하는가
 - **[guide/impact-scan.md](guide/impact-scan.md)** — 변경 영향 스캔의 동작 원리: impact_scan.py 사용법과 CR 작성 3단계

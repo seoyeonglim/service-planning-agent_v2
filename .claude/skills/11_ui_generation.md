@@ -10,10 +10,10 @@
 UI 생성 전 반드시 이 4개 문서를 모두 읽어라.
 하나라도 없으면 생성을 시작하지 말 것.
 
-1. Read docs/ui/01_information_architecture.md  → 전체 화면 목록 파악
-2. Read docs/ui/02_user_flow.md                 → 화면 간 이동 경로 파악
-3. Read docs/ui/03_screen_spec.md               → 각 화면의 데이터/액션/상태 파악
-4. Read docs/ui/04_design_direction.md          → 컬러/타이포/컴포넌트 스타일 파악
+1. Read docs/[프로젝트명]/ui/01_information_architecture.md  → 전체 화면 목록 파악
+2. Read docs/[프로젝트명]/ui/02_user_flow.md                 → 화면 간 이동 경로 파악
+3. Read docs/[프로젝트명]/ui/03_screen_spec.md               → 각 화면의 데이터/액션/상태 파악
+4. Read docs/[프로젝트명]/ui/04_design_direction.md          → 컬러/타이포/컴포넌트 스타일 파악
 
 추가로 PRD의 REQ 레지스트리와의 추적표가 있어야 한다.
 
