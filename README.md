@@ -60,6 +60,7 @@ AGENTS.md                      # 위와 같은 내용의 Codex(다른 AI 도구)
 ```
 .claude/scripts/
 ├── validate_traceability.py   # "빠뜨린 요구사항 없나?" 자동 검사기
+├── impact_scan.py             # "이 요구사항 바꾸면 어느 문서를 확인해야 하지?" 목록 생성기
 ├── sync_codex_skills.py       # 매뉴얼 수정하면 Codex용 복사본도 자동 갱신
 ├── make_pdf.sh                # 완성된 기획서를 고객 전달용 PDF로 변환
 └── _mermaid_to_img.py         # (PDF 만들 때 다이어그램을 이미지로 바꿔주는 보조)
@@ -190,7 +191,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 - **PRD 필수 템플릿 15개 섹션** (이 파일의 핵심): 문서 정보(버전·상태) → 한줄 요약 → 문제 정의(AS-IS/TO-BE/성공 기준/증거) → **요구사항 레지스트리 표** → 스코프 → 사용자 스토리 → 기능 상세 → NFR → 결정 로그(ADR) → 가정✅/확정🔲/미결❓ → 테스트 케이스 초안 → 변경 이력 → 관련 문서 추적
 - **Mermaid 플로우차트 규칙**: happy path 먼저, 분기점마다 조건 명시, 오류 플로우 별도, 단계마다 액터 명시
 - **발행 전 자가 검토 7문항** — 하나라도 No면 즉시 수정 (개발자가 질문 없이 구현 가능한가, 대표가 30초에 파악 가능한가 등)
-- **변경 기록(CR) 규칙**: v1.0 확정 이후의 모든 변경은 `prd/CHANGELOG.md`에 CR-### 레코드로 기록 — AS-IS/TO-BE 문구 그대로 인용, 변경 범위는 추적성 검증으로 누락 확인, 방향성 결정은 ADR과 상호 링크(ADR=의사결정 기록, CR=실행 기록)
+- **변경 기록(CR) 규칙**: v1.0 확정 이후의 모든 변경은 `prd/CHANGELOG.md`에 CR-### 레코드로 기록 — AS-IS/TO-BE 문구 그대로 인용, 방향성 결정은 ADR과 상호 링크(ADR=의사결정 기록, CR=실행 기록). 변경 범위는 3단계로: ① `impact_scan.py [대상ID] --md`로 확인 대상 파일 체크리스트 자동 생성 → ② 파일별 확인·수정 기록 → ③ `validate_traceability.py`로 ID 누락 재확인
 
 #### 06. 테스트 케이스 도출 (`06_test_cases.md`)
 
@@ -319,6 +320,7 @@ PRD(서술)와 화면 명세(레이아웃) 사이의 빈칸인 **동작 규칙**
 ### 스크립트
 
 - **`validate_traceability.py`** (314줄) — 요구사항 추적성 자동 검증. 아래 [별도 섹션](#추적성-검증의-동작-원리) 참조
+- **`impact_scan.py`** — 변경 영향 범위 스캐너. `python3 .claude/scripts/impact_scan.py REQ-041 --md` 하면 REQ-041이 등장하는 모든 산출물 파일을 체크리스트로 출력 — CR(변경 기록)의 "변경 범위" 칸 초안용. `REQ-001~005` 같은 축약 표기도 인식하고, `_archive/`·`ref/`(변경 대상 아님)는 스캔에서 제외. 단, "확인할 위치"만 알려주며 내용 일치 여부는 사람이 대조
 - **`sync_codex_skills.py`** (139줄) — `.claude/skills/NN_name.md` 원본에서 `.codex/skills/NN-name/SKILL.md`를 자동 생성. `--check`(드리프트 점검, 불일치 시 종료코드 2), `--prune`(원본 삭제분 정리) 옵션 지원. `visual_generation`은 제외(수동 관리)
 - **`make_pdf.sh`** — 기획서 md → 고객 전달용 PDF 파이프라인: Mermaid 블록을 PNG로 치환(`_mermaid_to_img.py`) → pandoc(+`assets/pdf/style.html` 스타일 주입) → weasyprint. 색 표준은 `assets/pdf/{style.html, mermaid.json, PALETTE.md}`로 통일. 사전 요구: `brew install pandoc weasyprint`
 - **`hooks/session_start.sh`** — 세션 시작 시 `docs/` 하위 프로젝트별로 Phase 진행 현황판(✅/⬜ + "다음 단계: …")을 출력하는 스크립트 (현재 settings.local.json에는 미등록 — 수동 실행용)

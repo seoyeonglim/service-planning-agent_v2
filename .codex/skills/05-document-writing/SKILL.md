@@ -126,7 +126,10 @@ v1.0 확정(baseline) 이후의 모든 변경은 `docs/[프로젝트명]/prd/CHA
 
 - CR은 실행 기록, ADR은 의사결정 기록이다. 방향성 결정이 동반되면 ADR을 먼저 남기고 CR의 사유 칸에서 링크한다(ADR 1건 : CR N건 가능).
 - **AS-IS/TO-BE는 문구를 그대로 인용**한다(요약 금지 — 구조 변경처럼 인용이 불가능한 경우만 전/후 상태를 서술).
-- **변경 범위**에는 실제로 고친 문서·섹션·ID를 모두 나열하고, 작성 후 `python3 .claude/scripts/validate_traceability.py`를 실행해 대상 ID의 유령/고아 오류가 없는지로 누락을 확인한다.
+- **변경 범위는 3단계로 작성한다:**
+  1. `python3 .claude/scripts/impact_scan.py [대상ID] --md` 실행 → 대상 ID가 등장하는 파일 체크리스트가 자동 생성됨
+  2. 체크리스트의 각 파일을 열어 수정 필요 여부를 확인하고, 고친 곳은 체크·"영향 없음"인 곳은 사유와 함께 기록
+  3. `python3 .claude/scripts/validate_traceability.py`로 유령/고아 오류가 없는지 재확인
 - CR 없이 v1.0 이후 문서를 수정하는 것 금지.
 
 ```markdown
