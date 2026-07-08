@@ -118,10 +118,14 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 | `Stop` | Claude 응답이 끝날 때마다 | `validate_traceability.py` (advisory 모드 — 차단 없이 현황 출력) |
 | `PostToolUse` | Edit/Write/MultiEdit 직후 | `sync_codex_skills.py --quiet` (스킬 수정 시 .codex 자동 동기화) |
 
+> 위 두 개는 워크플로우 레포의 훅입니다. 이와 별개로 **각 프로젝트 저장소**에는 커밋 시점에 작동하는 **커밋 게이트**(`commit-msg` 훅)가 붙습니다 — 아래 스크립트 참조.
+
 ### 스크립트
 
 - **`validate_traceability.py`** — 요구사항 추적성 채점기: 고아(정의만 있음)·유령(정의 없이 참조) 적발, MUST 커버리지 검사. `--strict`가 Phase 게이트. → [동작 원리 상세](guide/traceability.md)
 - **`consistency_check.py`** — 내용 정합성 검사기(기계 판정): FS 우선순위 상속·단계 일치, MUST FS의 WBS 배치, 화면별 산출물 존재, 폐기 REQ 활성 참조, FS ID 중복. 문장 의미 충돌은 스킬 15의 에이전트 의미 대조가 담당
+- **`commit_gate.sh`** — 프로젝트 저장소의 `commit-msg` 훅. 커밋 시 ①`validate_traceability` ②`consistency_check`를 `--strict`로 순차 실행해 ❌ 오류 시 커밋을 차단하고, `[handoff]` 커밋은 스킬 15 수행 확인 토큰(`Skill15-Reviewed: yes`)을 요구한다. prd/ 없는 비-기획 저장소에선 조용히 통과. `git config --global init.templateDir`로 **신규 저장소 `git init` 시 자동 설치**된다.
+- **`install_commit_gate.sh`** — 위 게이트를 프로젝트 저장소에 수동 설치(`bash .claude/scripts/install_commit_gate.sh docs/[프로젝트명]`). 템플릿 등록 이전에 만든 저장소용.
 - **`impact_scan.py`** — 변경 영향 범위 수색기: "이 ID를 바꾸면 어느 문서를 같이 봐야 하지?"에 파일+줄 번호 체크리스트로 답함. → [동작 원리 상세](guide/impact-scan.md)
 - **`sync_codex_skills.py`** — `.claude/skills/NN_name.md` 원본에서 `.codex/skills/NN-name/SKILL.md`를 자동 생성. `--check`(드리프트 점검), `--prune`(원본 삭제분 정리)
 - **`make_pdf.sh`** — 기획서 md → 고객 전달용 PDF (Mermaid→PNG 치환 → pandoc → weasyprint). 사전 요구: `brew install pandoc weasyprint`
@@ -164,7 +168,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 | 회의록 (협의·미팅 기록) | `docs/[프로젝트명]/meetings/` |
 | 고객사 원자료 (git 추적 안 함 — 로컬 전용) | `docs/[프로젝트명]/ref/` |
 
-> **형상관리 이중 구조**: 워크플로우 레포에는 `docs/` 하위 프로젝트가 `.gitignore`로 제외되어 뼈대만 올라갑니다. 각 프로젝트 폴더는 그 자리에서 독립 git 저장소로 초기화해 팀 GitHub(wrtnlabs) 비공개 저장소로 따로 푸시합니다. 프로젝트 저장소에는 **prd · ui · fnspec · meetings · assets/wireframes만 추적**(화이트리스트)하고 ref(원자료)·sow(계약)·wbs(내부 일정)·diagrams·_archive는 로컬 전용입니다. 프로젝트 작업 중 "커밋해/푸시해"는 그 프로젝트 저장소에만 반영되며, 푸시 전 고객 PII(상담 데이터·이메일 등)가 스테이징되지 않았는지 점검하는 게이트를 거칩니다.
+> **형상관리 이중 구조**: 워크플로우 레포에는 `docs/` 하위 프로젝트가 `.gitignore`로 제외되어 뼈대만 올라갑니다. 각 프로젝트 폴더는 그 자리에서 독립 git 저장소로 초기화해 팀 GitHub(wrtnlabs) 비공개 저장소로 따로 푸시합니다. 프로젝트 저장소에는 **prd · ui · fnspec · meetings · assets/wireframes만 추적**(화이트리스트)하고 ref(원자료)·sow(계약)·wbs(내부 일정)·diagrams·_archive는 로컬 전용입니다. 프로젝트 작업 중 "커밋해/푸시해"는 그 프로젝트 저장소에만 반영되며, 푸시 전 고객 PII(상담 데이터·이메일 등)가 스테이징되지 않았는지 점검하는 게이트를 거칩니다. 또한 프로젝트 저장소는 **커밋 게이트**(`commit-msg` 훅)를 통해 커밋 시점에 추적성·정합성 검사가 자동 실행되어 ❌ 오류가 있으면 커밋이 차단됩니다 — 신규 저장소는 `git init` 시 자동 설치(`commit_gate.sh` 참조).
 
 ---
 
