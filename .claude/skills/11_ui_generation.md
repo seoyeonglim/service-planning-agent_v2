@@ -68,6 +68,14 @@ UI 생성 전 반드시 이 4개 문서를 모두 읽어라.
   - `[라벨]`은 실제 주석도해 파일의 라벨로 채운다(스킬 11 ③에서 저장한 `annotated-[SC-ID]-[라벨].html`와 동일해야 링크가 유효). 상태 병렬 배치 시 라벨은 `기본`.
   - 1줄차 = 추적 꼬리표(무슨 화면·근거 REQ·검증 TC), 2줄차 = 상호 링크(상세 명세와 시각 도해 위치). **SC-ID가 조인 키**이므로 화면 파일명이 달라도(`sc-01_landing`, `admin_sc-07_sop` 등) SC-##로 매핑된다.
 - 본 HTML 생성 후, 화면 명세서의 해당 SC 섹션 `연결 산출물` 줄에 방금 만든 **본 HTML 파일명을 채워** 역링크를 완성한다(양방향 1:1).
+- **주석 도해 링크 배지(리뷰용):** 본 HTML `<body>` 바로 뒤에, 그 화면의 주석 도해를 새 탭으로 여는 **좌하단 고정 배지**를 넣는다. 실제 화면을 보다가 클릭하면 동작 설명(주석 도해)이 열려 리뷰·핸드오프에 쓴다.
+  ```html
+  <a id="annot-toggle" href="../../assets/wireframes/annotated-[SC-ID]-[라벨].html" target="_blank" rel="noopener"
+     title="이 화면의 동작 규칙 주석 도해 열기"
+     style="position:fixed;bottom:14px;left:14px;z-index:2147483647;display:inline-flex;align-items:center;gap:5px;font:600 12px/1 'Pretendard',system-ui,sans-serif;color:#374151;background:#fff;border:1px dashed #9CA3AF;border-radius:9999px;padding:7px 12px;text-decoration:none;box-shadow:0 1px 4px rgba(0,0,0,.15)">🛈 주석 도해 보기</a>
+  ```
+  - **좌하단·점선 배지**로 고정 — "실제 서비스 UI가 아닌 리뷰 도구"임이 드러나게(제품 디자인 오염 금지). 우상단은 추적 태그·상태 전환 컨트롤이 점유하므로 피한다.
+  - 좌측 사이드바가 있는 화면(대화형 등)에선 사이드바 하단 문구와 경미하게 겹칠 수 있으나, 정적 텍스트 위 리뷰 배지라 허용한다.
 - 공통 컴포넌트는 재사용 가능하게 분리(헤더/좌측 내비/카드/버튼)
 - 상태 화면(빈/로딩/에러)은 실제 화면에서 전환 가능한 형태로 포함
 - 좌측 내비/상단 헤더가 있는 화면은 본문 영역 패딩으로 오버플로우 보정
