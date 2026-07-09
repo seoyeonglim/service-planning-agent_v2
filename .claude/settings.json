@@ -1,0 +1,25 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/validate_traceability.py"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/scripts/sync_codex_skills.py --quiet"
+          }
+        ]
+      }
+    ]
+  }
+}

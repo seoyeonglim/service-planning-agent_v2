@@ -1,0 +1,21 @@
+name: workflow-checks
+
+# 워크플로우 저장소 자체의 안전망 — push/PR마다 자동 실행.
+# 1) 검증기 회귀 테스트 (고의로 깨진 문서를 검증기가 잡는지)
+# 2) 스킬 원본 ↔ .codex 미러 동기화 드리프트 점검
+on:
+  push:
+  pull_request:
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+      - name: 검증기 회귀 테스트
+        run: python3 tests/run_tests.py
+      - name: 스킬 동기화 드리프트 점검
+        run: python3 .claude/scripts/sync_codex_skills.py --check

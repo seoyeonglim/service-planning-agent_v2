@@ -49,3 +49,6 @@ _consistency_report.md
 .env
 # 고객사 프로젝트 산출물 — git 추적 제외 (로컬 관리)
 docs/kyobo_lifeplanet_ai_salesbot/
+
+# 개인 로컬 설정(권한 허용목록 등) — 공유 안 함
+.claude/settings.local.json
