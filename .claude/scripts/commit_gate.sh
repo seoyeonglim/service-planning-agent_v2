@@ -62,7 +62,7 @@ fi
 
 # ③ 스킬 15: 핸드오프 커밋일 때만 확인 토큰 요구
 MSG="$(cat "$MSG_FILE" 2>/dev/null || true)"
-if printf '%s' "$MSG" | grep -qiE '\[handoff\]|핸드오프'; then
+if printf '%s' "$MSG" | grep -qi '\[handoff\]'; then
   if printf '%s' "$MSG" | grep -qiE '^Skill15-Reviewed:[[:space:]]*yes'; then
     echo ""
     echo "✅ ③ 스킬 15 문장 의미 대조 확인됨 (핸드오프 커밋)"

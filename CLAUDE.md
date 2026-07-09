@@ -322,7 +322,7 @@ python3 .claude/scripts/validate_traceability.py --strict --report
 python3 .claude/scripts/consistency_check.py --strict --report
 ```
 
-- **기계 판정 항목**(위 스크립트): FS 우선순위 상속, FS↔REQ 단계 일치, MUST FS의 WBS 배치, 화면별 산출물(와이어프레임·본 HTML) 존재, 폐기 REQ의 활성 참조, FS ID 중복 선언
+- **기계 판정 항목**(위 스크립트): FS 우선순위 상속, FS↔REQ 단계 일치, MUST FS의 WBS 배치, 화면별 산출물(와이어프레임·본 HTML) 존재, 화면 HTML 상호 링크(명세·주석도해), 폐기 REQ의 활성 참조, FS ID 중복 선언
 - `--strict`: ❌ 오류 시 종료코드 2 / `--report`: `prd/_consistency_report.md` 저장
 - **의미 대조**(문장 충돌 — 기계 판정 불가): Read `.claude/skills/15_consistency_check.md` 후 그 프로토콜을 따른다 — 4영역 병렬 에이전트 검사 → 발견을 [결정]/[기계적]/[상류 CR]로 분류 → [결정]은 건별 `AskUserQuestion`, 판정 기준은 문서 서열
 
