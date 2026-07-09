@@ -69,8 +69,8 @@ argument-hint: "[project-name] [sc-id 또는 req-id] [label]"
 | 유형 | 저장 위치 | 형식 |
 |------|-----------|------|
 | Type A | 해당 문서 내 인라인 | Mermaid 코드블록 |
-| Type B | `docs/[프로젝트명]/assets/wireframes/wf-[SC-ID]-[label].html` | HTML 파일 |
-| Type C | `docs/[프로젝트명]/assets/wireframes/annotated-[SC-ID]-[label].html` | HTML 파일 |
+| Type B | `docs/[프로젝트명]/assets/wireframes/wf-[SC-ID]-[상태명].html` | HTML 파일 |
+| Type C | `docs/[프로젝트명]/assets/wireframes/annotated-[SC-ID]-[라벨].html` | HTML 파일 |
 
 ---
 
