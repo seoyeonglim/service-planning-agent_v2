@@ -62,6 +62,7 @@ UI 구현자가 추측 없이 그릴 수 있게 만드는 설계도다.
 - **진입 경로:** [어디서 오는가]
 - **관련 REQ:** [REQ-###]
 - **우선순위:** MUST/SHOULD/NICE
+- **연결 산출물:** 주석도해 `../assets/wireframes/annotated-SC-###-*.html` · 본 HTML `screens/[Phase 3에서 파일명 채움]` — SC-ID를 조인 키로 1:1 매핑
 
 #### 표시 데이터
 - [데이터 항목 1]
