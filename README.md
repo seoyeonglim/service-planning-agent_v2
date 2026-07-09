@@ -53,6 +53,15 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 
 > Phase 3과 4는 서로 의존하지 않아 **동시에 진행**할 수 있습니다.
 
+### PRD 이후, 진행 모드를 먼저 고릅니다
+
+PRD가 끝나면 곧바로 UI를 파는 게 아니라, **이번 사이클 목표가 뭔지 사용자에게 물어봅니다.** 비싼 산출물(기능명세·고해상도 UI)은 방향이 확정된 뒤에 만들자는 원칙이에요.
+
+- **① 방향 확정·리뷰 (Quick)** — 경량 화면 명세 → 저해상도 와이어프레임까지만 만들어 방향·플로우를 확정하고 리뷰·싱크. 기능명세·고해상도 UI는 다음 사이클로 미룸.
+- **② 전체 산출 (Full)** — 화면 명세 → 와이어프레임으로 방향 확정 → **기능명세(처리·예외 확정)** → 고해상도 UI → WBS. 개발 핸드오프까지 다 뽑을 때.
+
+> 어느 모드든 **화면 명세가 와이어프레임보다 먼저**입니다. Full 모드에선 **기능명세를 고해상도 UI 앞에** 두어, 뒤늦게 드러난 예외·상태가 UI에 반영되게 합니다.
+
 **꼭 지키는 규칙 (전체는 CLAUDE.md 참조):**
 
 - 기능은 `REQ-###` ID로 관리 — 이름이 바뀌어도 ID는 유지
@@ -101,7 +110,7 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 | 스크립트 | 하는 일 |
 |---|---|
 | `validate_traceability.py` | ID **연결이 끊긴 곳** 적발 → [상세](guide/traceability.md) |
-| `consistency_check.py` | 연결됐는데 **값이 어긋난 곳** 적발 (우선순위·배치 등) |
+| `consistency_check.py` | 연결됐는데 **값이 어긋난 곳** 적발 (우선순위·배치 등) → [상세](guide/consistency.md) |
 | `commit_gate.sh` / `install_commit_gate.sh` | 위 두 검사를 커밋 때 자동 실행하는 게이트 (본체·설치기) |
 | `impact_scan.py` | "이 ID 바꾸면 어디를 봐야 하지?" 체크리스트 → [상세](guide/impact-scan.md) |
 | `sync_codex_skills.py` | 스킬 원본 → Codex용 사본 생성 |
@@ -146,5 +155,6 @@ Phase 4  개발 핸드오프         → 스킬 12(기능명세서) → 13(WBS)
 ## 더 자세히
 
 - **[guide/skills.md](guide/skills.md)** — 스킬 15개 상세 규칙·산출물 형식
-- **[guide/traceability.md](guide/traceability.md)** — 추적성 검증이 어떻게 도는지
+- **[guide/traceability.md](guide/traceability.md)** — 추적성 검증(연결)이 어떻게 도는지
+- **[guide/consistency.md](guide/consistency.md)** — 내용 정합성 검증(값)이 어떻게 도는지
 - **[guide/impact-scan.md](guide/impact-scan.md)** — 영향 스캔 사용법과 변경 기록 작성법
