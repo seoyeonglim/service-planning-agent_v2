@@ -17,6 +17,8 @@ argument-hint: "[project-name] [sc-id 또는 req-id] [label]"
 
 인수가 전달된 경우: `$ARGUMENTS`
 
+> **진행 모드와 Type B:** Type B(저해상도 와이어프레임)는 **Quick 모드의 종료 산출물**이다. Quick에선 여기서 방향·플로우를 확정하고 사용자 승인 후 멈춘다. Full 모드에선 Type B가 고해상도 UI로 가기 전 중간 확인 단계다. (CLAUDE.md "진행 모드 선택" 참조)
+
 > 상세 작성 규칙 및 Phase 통합 지점은 [REFERENCE.md](REFERENCE.md) 참조
 
 ---
