@@ -11,6 +11,7 @@
   - FS의 추진 단계(P1~)가 REQ 레지스트리의 단계와 일치하나
   - 모든 MUST FS가 WBS에 배치됐나
   - 화면(SC)마다 와이어프레임·본 HTML 산출물이 존재하나
+  - 화면 HTML이 명세·주석도해로 상호 링크되고, 가리키는 주석도해가 실재하나
   - 폐기된 REQ가 활성 문서에서 여전히 참조되나
   - 같은 FS ID가 두 번 선언되지 않았나
 
@@ -165,6 +166,30 @@ def check_project(proj_dir):
             warn(f"본 HTML 파일이 없는 화면: {fmt(no_scr)}")
         if not no_wf and not no_scr:
             ok(f"화면 {len(declared_sc)}개 전부 와이어프레임·본 HTML 존재")
+
+    # --- 4b. 화면 HTML 상호 링크(cross-link) 유효성 ---
+    #   본 HTML이 SC-ID로 명세·주석도해와 1:1 연결되는지 검사한다.
+    #   AI·스크립트가 화면 하나만 열어도 나머지를 따라갈 수 있게 하는 규칙(스킬 11).
+    screens_dir = proj_dir / "ui" / "screens"
+    html_files = sorted(screens_dir.glob("*.html")) if screens_dir.is_dir() else []
+    if html_files:
+        head("화면 HTML 상호 링크")
+        wf_files = {p.name for p in (proj_dir / "assets" / "wireframes").glob("*.html")}
+        no_spec, bad_annot = [], []
+        for html in html_files:
+            t = read(html)
+            if "03_screen_spec.md" not in t:
+                no_spec.append(html.name)
+            for m in re.finditer(r"annotated-[^\s\"'<>()]+\.html", t):
+                ref = m.group(0).rsplit("/", 1)[-1]
+                if ref not in wf_files:
+                    bad_annot.append(f"{html.name}→{ref}")
+        if no_spec:
+            warn(f"명세 링크(03_screen_spec.md) 없는 화면 HTML: {fmt(set(no_spec))}")
+        if bad_annot:
+            warn(f"실재하지 않는 주석도해를 가리키는 화면 HTML: {', '.join(sorted(set(bad_annot)))}")
+        if not no_spec and not bad_annot:
+            ok(f"화면 HTML {len(html_files)}개 상호 링크 정상")
 
     # --- 5. 폐기 REQ의 활성 참조 ---
     retired = {r for r, (pr, _) in registry.items() if pr == "폐기"}

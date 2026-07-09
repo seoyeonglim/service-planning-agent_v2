@@ -110,7 +110,7 @@ PRD가 끝나면 곧바로 UI를 파는 게 아니라, **이번 사이클 목표
 | 스크립트 | 하는 일 |
 |---|---|
 | `validate_traceability.py` | ID **연결이 끊긴 곳** 적발 → [상세](guide/traceability.md) |
-| `consistency_check.py` | 연결됐는데 **값이 어긋난 곳** 적발 (우선순위·배치 등) → [상세](guide/consistency.md) |
+| `consistency_check.py` | 연결됐는데 **값이 어긋난 곳** 적발 (우선순위·배치·화면 상호 링크 등) → [상세](guide/consistency.md) |
 | `commit_gate.sh` / `install_commit_gate.sh` | 위 두 검사를 커밋 때 자동 실행하는 게이트 (본체·설치기) |
 | `impact_scan.py` | "이 ID 바꾸면 어디를 봐야 하지?" 체크리스트 → [상세](guide/impact-scan.md) |
 | `sync_codex_skills.py` | 스킬 원본 → Codex용 사본 생성 |
