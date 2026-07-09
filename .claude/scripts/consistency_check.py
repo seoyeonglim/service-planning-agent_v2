@@ -71,13 +71,17 @@ def parse_fs_rows(fs_text):
         if not cells or not FS_ID_RE.fullmatch(cells[0].replace("**", "")):
             continue
         fid = cells[0].replace("**", "")
-        # 우선·단계 칸: "SHOULD·P3-2" 형태가 있는 셀을 찾는다
+        # 우선순위·단계: 한 셀에 같이 있든("SHOULD·P3-2") 별도 칸으로 나뉘든 모두 인식.
+        # (한 셀 결합만 인식하면, 우선순위 단독 칸 템플릿으로 쓴 표에서 ②우선순위 상속·
+        #  ④MUST FS WBS 배치 검사가 조용히 no-op가 된다.)
         pr = st = None
         for c in cells[1:]:
-            if PRIORITY_RE.search(c) and STAGE_RE.search(c):
-                pr = PRIORITY_RE.search(c).group(1)
-                st = STAGE_RE.search(c).group(0)
-                break
+            pm = PRIORITY_RE.search(c)
+            if pm and pr is None:
+                pr = pm.group(1)
+            sm = STAGE_RE.search(c)
+            if sm and st is None:
+                st = sm.group(0)
         # 근거 REQ: 마지막 칸(연결)에서 우선 추출, 없으면 행 전체
         reqs = extract_refs(cells[-1])["REQ"] or extract_refs(" ".join(cells))["REQ"]
         if fid in rows:

@@ -160,6 +160,7 @@ UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 > - **② 저해상도 와이어프레임(Type B)** → **③ 주석 HTML 도해(Type C)** — 그레이스케일 와이어프레임 확인 후 콜아웃 도해. 작성·저장(`wf-`/`annotated-`)·색상 규칙 정본은 `.claude/skills/visual_generation/`(REFERENCE.md·SKILL.md).
 > - **④ 본 HTML** — 디자인 반영·전 상태(빈/로딩/에러) 구현. 상세는 스킬 11.
 > - 각 단계마다 **사용자 확인** 후 진행. **화면 1개씩 순차**(전체 한꺼번에 생성 금지), **와이어프레임 확인 없이 본 HTML 생성 금지**.
+> - **진행 모드에 따라 루프가 달라진다** — Quick은 **②(와이어프레임)에서 종료**(③④ 생략), Full은 **④ 본 HTML을 기능명세서(스킬 12) 완료 후** 생성한다(스킬 11 참조).
 
 **생성 규칙:**
 
@@ -258,7 +259,7 @@ python3 .claude/scripts/validate_traceability.py --strict --report
 - 단계 인식: PRD만 있으면 내부 정합성만, ui/·screens/가 생기면 매핑·HTML 검사까지 자동 확대
 - `--strict`: ❌ 오류가 있으면 종료코드 2 → **오류를 보완하기 전까지 다음 Phase 진입 금지**
 - `--report`: 프로젝트별 `prd/_traceability_report.md`에 결과를 남긴다
-- 매 응답 종료 시 `Stop` 훅이 advisory 모드(차단 안 함)로 같은 검사를 자동 출력한다(`.claude/settings.local.json`)
+- 매 응답 종료 시 `Stop` 훅이 advisory 모드(차단 안 함)로 같은 검사를 자동 출력한다(`.claude/settings.json`에 공유 등록 — clone 시 따라옴)
 
 ### 내용 정합성 검증 (게이트 통과 직전·대규모 변경 후 권장 — 개발 핸드오프 전은 필수)
 
