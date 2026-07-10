@@ -1,4 +1,4 @@
-# 서비스 기획 에이전트 (service-planning-agent_v2)
+# 서비스 기획 에이전틱 워크플로우 (service-planning-agent_v2)
 
 Claude Code / Codex CLI를 **"10년차 시니어 서비스 기획자"**처럼 일하게 만드는 워크플로우입니다.
 
