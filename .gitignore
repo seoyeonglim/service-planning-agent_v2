@@ -47,9 +47,10 @@ _consistency_report.md
 
 # Env
 .env
-# 고객사 프로젝트 산출물 — git 추적 제외 (로컬 관리)
-docs/kyobo_lifeplanet_ai_salesbot/
-docs/wrtnax-aicc-platform/
+# 고객사 프로젝트 산출물 — git 추적 제외 (프로젝트마다 독립 저장소로 로컬 관리)
+# 개별 나열이 아니라 통째로 제외 — 새 프로젝트 추가 때마다 한 줄씩 늘리는 방식은
+# 등록을 빠뜨리면 `git add .` 한 번에 고객 문서가 공개 레포로 새는 구조였음
+docs/
 
 # 개인 로컬 설정(권한 허용목록 등) — 공유 안 함
 .claude/settings.local.json
