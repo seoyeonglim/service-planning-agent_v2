@@ -27,12 +27,24 @@ import sys
 import re
 from pathlib import Path
 
-PRIORITIES = ("MUST", "SHOULD", "NICE")
+PRIORITIES = ("MUST", "SHOULD", "NICE", "폐기")
+# 우선순위 토큰: 셀 안에 다른 글자와 섞여 있어도("MUST·P1") 인식한다
+PRIO_TOKEN_RE = re.compile(r"\b(MUST|SHOULD|NICE)\b|(폐기)")
 
 # REQ-070·071·072·074, 010~016·020  /  REQ-090~093  /  REQ-001~005 형태를 통째로 잡는다
 REF_RE = re.compile(r"(REQ|EC|TC|SC)-(\d+(?:~\d+)?(?:[·,]\s*\d+(?:~\d+)?)*)")
 # TC-020-01 같은 복합 ID(향후 06_test_cases 스킬 포맷)는 먼저 따로 잡는다
 TC_COMPOUND_RE = re.compile(r"TC-\d+-\d+")
+
+
+def find_priority(cells):
+    """ 표의 셀들에서 우선순위 토큰을 찾는다. 못 찾으면 UNKNOWN.
+    (셀 전체 일치가 아니라 토큰 검색 — 'MUST·P1'·'**MUST**' 같은 표기도 인식) """
+    for c in cells:
+        m = PRIO_TOKEN_RE.search(c.replace("**", "").upper())
+        if m:
+            return m.group(1) or "폐기"
+    return "UNKNOWN"
 
 
 def expand_run(prefix, run):
@@ -54,16 +66,56 @@ def expand_run(prefix, run):
     return ids
 
 
-def extract_refs(text):
-    """ 텍스트에서 참조된 모든 ID를 종류별 집합으로 추출 """
-    refs = {"REQ": set(), "EC": set(), "TC": set(), "SC": set()}
+def extract_refs_split(text):
+    """ 참조 ID를 (명시 참조, 범위 전개 참조)로 나눠 추출.
+    'REQ-001~005'처럼 범위(~)로만 걸린 중간 번호는 의도적 결번일 수 있어,
+    유령 참조 판정 시 명시 참조(❌)와 범위 전개(⚠️)를 구분해야 오탐을 막는다. """
+    explicit = {"REQ": set(), "EC": set(), "TC": set(), "SC": set()}
+    ranged = {"REQ": set(), "EC": set(), "TC": set(), "SC": set()}
     for m in TC_COMPOUND_RE.finditer(text):
-        refs["TC"].add(m.group(0))
+        explicit["TC"].add(m.group(0))
     cleaned = TC_COMPOUND_RE.sub(" ", text)
     for m in REF_RE.finditer(cleaned):
         prefix, run = m.group(1), m.group(2)
-        refs[prefix] |= expand_run(prefix, run)
-    return refs
+        for part in re.split(r"[·,]", run):
+            part = part.strip()
+            if not part:
+                continue
+            ids = expand_run(prefix, part)
+            if "~" in part:
+                a, b = (x.strip() for x in part.split("~", 1))
+                ends = {f"{prefix}-{a}", f"{prefix}-{b}"} & ids
+                explicit[prefix] |= ends
+                ranged[prefix] |= ids - ends
+            else:
+                explicit[prefix] |= ids
+    return explicit, ranged
+
+
+def extract_refs(text):
+    """ 텍스트에서 참조된 모든 ID를 종류별 집합으로 추출 (명시+범위 합집합) """
+    explicit, ranged = extract_refs_split(text)
+    return {k: explicit[k] | ranged[k] for k in explicit}
+
+
+def registry_sections(prd_text):
+    """ '요구사항 레지스트리' 헤딩 하위 본문만 이어 붙여 반환 (다음 동급 이상 헤딩 전까지).
+    스코프 제외 표 등 다른 표의 REQ 행이 '선언'으로 오염되는 것을 막는다.
+    헤딩이 없으면 None — 호출부에서 전체 텍스트로 폴백하고 경고한다. """
+    lines = prd_text.splitlines()
+    chunks, start, level = [], None, 0
+    for i, ln in enumerate(lines):
+        m = re.match(r"^(#{1,4})\s", ln)
+        if not m:
+            continue
+        if start is not None and len(m.group(1)) <= level:
+            chunks.append("\n".join(lines[start:i]))
+            start = None
+        if start is None and "요구사항 레지스트리" in ln:
+            start, level = i, len(m.group(1))
+    if start is not None:
+        chunks.append("\n".join(lines[start:]))
+    return "\n".join(chunks) if chunks else None
 
 
 def read(path):
@@ -73,27 +125,26 @@ def read(path):
         return ""
 
 
-def parse_declarations(prd_text, spec_text):
-    """ 선언(정의)된 ID들을 추출 """
+def parse_declarations(prd_text, spec_text, reg_text):
+    """ 선언(정의)된 ID들을 추출. REQ 선언은 레지스트리 섹션(reg_text)에서만 읽는다. """
     declared = {"REQ": {}, "EC": set(), "TC": set(), "SC": set()}
 
-    # REQ: 4장 레지스트리 표의 행  | REQ-001 | ... | MUST |
-    for line in prd_text.splitlines():
+    # REQ: 레지스트리 표의 행  | REQ-001 | ... | MUST |  (**볼드** 표기 허용)
+    for line in reg_text.splitlines():
         s = line.strip()
         if not s.startswith("|"):
             continue
         cells = [c.strip() for c in s.strip("|").split("|")]
         if not cells:
             continue
-        m = re.fullmatch(r"REQ-\d+", cells[0])
-        if not m:
+        rid = cells[0].replace("**", "").strip()
+        if not re.fullmatch(r"REQ-\d+", rid):
             continue
-        priority = next((c.upper() for c in cells if c.upper() in PRIORITIES), "UNKNOWN")
-        # 레지스트리(§4)가 정한 우선순위를, 뒤따르는 추적표(§15)의 단일 REQ 행이 UNKNOWN으로
-        # 덮어쓰지 않게 한다. (추적표 행도 "| REQ-### | ..."로 시작해 선언으로 잡히지만
-        # 우선순위 칸이 없어 UNKNOWN이 되므로, 알려진 값이 있으면 보존한다.)
-        if cells[0] not in declared["REQ"] or declared["REQ"][cells[0]] == "UNKNOWN":
-            declared["REQ"][cells[0]] = priority
+        priority = find_priority(cells[1:])
+        # 같은 REQ 행이 중복될 때(레지스트리 내 소표 등) 알려진 우선순위를
+        # UNKNOWN이 덮어쓰지 않게 보존한다.
+        if rid not in declared["REQ"] or declared["REQ"][rid] == "UNKNOWN":
+            declared["REQ"][rid] = priority
 
     # EC: '### EC-01: ...' 헤딩
     for m in re.finditer(r"^#{2,4}\s*(EC-\d+)\b", prd_text, re.M):
@@ -162,7 +213,10 @@ def check_project(proj_dir):
     ui_dir = proj_dir / "ui"
     screens_dir = ui_dir / "screens"
 
-    prd_text = "\n".join(read(p) for p in sorted(prd_dir.glob("*.md")))
+    # 리포트(_*.md)·변경기록(CHANGELOG.md)은 PRD 본문이 아니다 — 함께 읽으면
+    # 과거 CR이 인용한 옛 ID가 유령 참조로 오탐되고, 자기 리포트를 재섭취한다.
+    prd_text = "\n".join(read(p) for p in sorted(prd_dir.glob("*.md"))
+                         if not p.name.startswith("_") and p.name != "CHANGELOG.md")
     if not prd_text.strip():
         return None  # PRD 없으면 검사 대상 아님
 
@@ -175,24 +229,38 @@ def check_project(proj_dir):
     )
     screens_text = "\n".join(read(p) for p in sorted(screens_dir.glob("*.html")))
 
-    declared = parse_declarations(prd_text, spec_text)
+    reg_text = registry_sections(prd_text)
+    declared = parse_declarations(prd_text, spec_text, reg_text or prd_text)
     req_to_tc, ec_to_tc = tc_links(prd_text)
 
     req_ids = set(declared["REQ"])
     must = {r for r, p in declared["REQ"].items() if p == "MUST"}
+    retired = {r for r, p in declared["REQ"].items() if p == "폐기"}
+    unknown_prio = sorted(r for r, p in declared["REQ"].items() if p == "UNKNOWN")
 
     rep.head(f"선언 현황")
     rep.info(f"REQ {len(req_ids)}개 (MUST {len(must)}) · EC {len(declared['EC'])}개 · "
              f"TC {len(declared['TC'])}개 · SC {len(declared['SC'])}개")
+    if reg_text is None:
+        rep.warn("'요구사항 레지스트리' 헤딩을 찾지 못해 문서 전체에서 REQ 표를 인식함 "
+                 "(스코프 제외 표 등이 선언으로 오염될 수 있음 — 헤딩을 추가하세요)")
+    if unknown_prio:
+        rep.warn(f"우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 REQ — "
+                 f"TC 커버리지 검사에서 빠짐: {fmt(unknown_prio)}")
 
     # --- 1. PRD 내부 정합성: EC/TC가 가리키는 REQ가 실제로 정의됐는가 ---
     rep.head("PRD 내부 정합성")
-    prd_refs = extract_refs(prd_text)
-    dangling_req = {r for r in prd_refs["REQ"] if r not in req_ids}
+    prd_exp, prd_rng = extract_refs_split(prd_text)
+    prd_refs = {k: prd_exp[k] | prd_rng[k] for k in prd_exp}
+    dangling_req = {r for r in prd_exp["REQ"] if r not in req_ids}
     if dangling_req:
         rep.err(f"PRD가 참조하지만 레지스트리에 없는 REQ(유령 참조): {fmt(dangling_req)}")
     else:
         rep.ok("PRD가 참조한 REQ는 모두 레지스트리에 정의됨")
+    rng_gap = {r for r in prd_rng["REQ"] if r not in req_ids} - dangling_req
+    if rng_gap:
+        rep.warn(f"범위 참조(REQ-a~b) 전개에만 걸리고 레지스트리에 없는 번호 "
+                 f"(의도적 결번인지 확인): {fmt(rng_gap)}")
 
     dangling_ec_ref = {e for e in prd_refs["EC"] if e not in declared["EC"]}
     if dangling_ec_ref:
@@ -214,16 +282,24 @@ def check_project(proj_dir):
         ec_no_tc = sorted(e for e in declared["EC"] if not ec_to_tc.get(e))
         if ec_no_tc:
             rep.warn(f"테스트(TC) 없는 엣지케이스: {fmt(ec_no_tc)}")
+    elif must:
+        # TC가 0개면 'TC 없는 MUST' 검사 자체가 성립하지 않아 통과해 버린다 —
+        # 검사할 수 없음(빈 서류함)과 검사해서 통과(확인된 서류함)를 구분한다.
+        rep.err(f"PRD에 선언된 TC(`### TC-###`)가 하나도 없음 — "
+                f"MUST REQ {len(must)}건 미검증 (06_test_cases 단계 수행 필요)")
     else:
         rep.warn("PRD에 선언된 TC(`### TC-###`)가 없음 — 06_test_cases 단계 미수행으로 보임")
 
     # --- 3. REQ ↔ 화면 매핑 (ui/ 존재 시) ---
     if ui_docs_text.strip():
         rep.head("REQ ↔ 화면/플로우 매핑 (Phase 2)")
-        ui_refs = extract_refs(ui_docs_text)
+        ui_exp, ui_rng = extract_refs_split(ui_docs_text)
+        ui_refs = {k: ui_exp[k] | ui_rng[k] for k in ui_exp}
         mapped = ui_refs["REQ"] & req_ids
         orphan_must = sorted(r for r in must if r not in mapped)
-        orphan_other = sorted(r for r in (req_ids - must) if r not in ui_refs["REQ"])
+        # 폐기 REQ는 화면에서 사라지는 것이 정상이므로 미매핑 경고 대상이 아니다
+        orphan_other = sorted(r for r in (req_ids - must - retired)
+                              if r not in ui_refs["REQ"])
         rep.info(f"화면/플로우에 매핑된 REQ: {len(mapped)}/{len(req_ids)}")
         if orphan_must:
             rep.err(f"어느 화면/플로우에도 없는 MUST REQ(누락 의심): {fmt(orphan_must)}")
@@ -232,9 +308,12 @@ def check_project(proj_dir):
         if orphan_other:
             rep.warn(f"화면/플로우에 아직 없는 SHOULD/NICE REQ: {fmt(orphan_other)}")
 
-        dangling_ui = {r for r in ui_refs["REQ"] if r not in req_ids}
+        dangling_ui = {r for r in ui_exp["REQ"] if r not in req_ids}
         if dangling_ui:
             rep.err(f"화면 문서가 참조하지만 PRD에 없는 REQ: {fmt(dangling_ui)}")
+        ui_rng_gap = {r for r in ui_rng["REQ"] if r not in req_ids} - dangling_ui
+        if ui_rng_gap:
+            rep.warn(f"화면 문서의 범위 참조 전개에만 걸리고 PRD에 없는 번호: {fmt(ui_rng_gap)}")
 
         # SC 참조 유효성
         dangling_sc = {s for s in ui_refs["SC"] if s not in declared["SC"]}
@@ -247,12 +326,15 @@ def check_project(proj_dir):
     # --- 4. 화면 HTML 참조 유효성 (screens/ 존재 시) ---
     if screens_text.strip():
         rep.head("화면 HTML 참조 유효성 (Phase 3)")
-        sc_refs = extract_refs(screens_text)
-        dangling_html = {r for r in sc_refs["REQ"] if r not in req_ids}
+        sc_exp, sc_rng = extract_refs_split(screens_text)
+        dangling_html = {r for r in sc_exp["REQ"] if r not in req_ids}
         if dangling_html:
             rep.err(f"화면 HTML이 참조하지만 PRD에 없는 REQ: {fmt(dangling_html)}")
         else:
             rep.ok("화면 HTML의 REQ 참조가 모두 유효함")
+        html_rng_gap = {r for r in sc_rng["REQ"] if r not in req_ids} - dangling_html
+        if html_rng_gap:
+            rep.warn(f"화면 HTML의 범위 참조 전개에만 걸리고 PRD에 없는 번호: {fmt(html_rng_gap)}")
         n_screens = len(list(screens_dir.glob("*.html")))
         rep.info(f"생성된 화면 HTML: {n_screens}개")
 

@@ -61,6 +61,33 @@ UI_ZOMBIE = "## 정보구조\n랜딩은 REQ-002 를 계속 노출한다.\n"
 PRD_REQ_DUP = "# PRD\n" + REG("| REQ-001 | 로그인 | MUST |\n| REQ-001 | 로그인(중복) | SHOULD |") + \
               "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n"
 
+# ── 검증기 자체 결함 회귀 픽스처 (2026-07 사냥 결과 8건) ──────────
+# (1) 볼드 REQ: **REQ-###** 표기도 선언으로 인식해야 함 (REQ-002는 TC 없는 MUST)
+PRD_BOLD = "# PRD\n" + REG("| **REQ-001** | 로그인 | MUST |\n| **REQ-002** | 결제 | MUST |") + \
+           "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n"
+# (4) TC가 0개인 PRD: 'TC 없는 MUST' 검사가 성립 불가 → 통과가 아니라 차단이어야 함
+PRD_ZERO_TC = "# PRD\n" + REG("| REQ-001 | 로그인 | MUST |")
+# (6) 스코프 제외 표의 REQ 행이 '선언'으로 오염되면 안 됨 (REQ-050은 레지스트리에 없음)
+PRD_SCOPE_OUT = "# PRD\n## 제외 범위\n| ID | 사유 |\n|---|---|\n| REQ-050 | 다음 버전 |\n" + \
+                REG("| REQ-001 | 로그인 | MUST |") + \
+                "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n### TC-050 (REQ-050)\n검증\n"
+# (7) 범위 참조(REQ-001~005)의 의도적 결번(002·004)은 ❌가 아니라 ⚠️여야 함
+PRD_RANGE = "# PRD\n" + REG("| REQ-001 | A | MUST |\n| REQ-003 | B | MUST |\n| REQ-005 | C | MUST |") + \
+            "## 개요\n본 서비스는 REQ-001~005 기능군으로 구성된다.\n" + \
+            "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n### TC-003 (REQ-003)\n검증\n### TC-005 (REQ-005)\n검증\n"
+# (8) CHANGELOG의 과거 ID 인용이 유령 참조로 오탐되면 안 됨
+CHANGELOG_OLD = "# 변경 기록\n## CR-001\n- 대상: REQ-777 (폐기된 과거 임시 ID)\n"
+# (5) 우선순위 미인식('필수' 등) FS는 조용히 빠지지 말고 경고로 표면화
+FNSPEC_KR_PRIO = "## 기능명세서\n| FS-ID | 기능명 | 우선·단계 | 연결 |\n|---|---|---|---|\n" + \
+                 "| FS-001 | 로그인 | 필수·P1 | REQ-001 |\n"
+# (3) FS-01이 WBS의 FS-010에 부분문자열로 매칭돼 '배치됨' 오판하면 안 됨
+FNSPEC_MUST_SHORT = "## 기능명세서\n| FS-ID | 기능명 | 우선·단계 | 연결 |\n|---|---|---|---|\n" + \
+                    "| FS-01 | 로그인 | MUST·P1 | REQ-001 |\n"
+WBS_SIMILAR = "## WBS\n- 주차1: FS-010 관련 작업\n"
+# (2) SC-01 산출물이 없는데 sc-010 파일이 있으면 '존재'로 오판하면 안 됨
+SPEC_SC01 = "## 화면 명세서\n### 화면명: 랜딩 (SC-01)\n- **관련 REQ:** REQ-001\n"
+HTML_OTHER = "<!DOCTYPE html>\n<!-- SC-010 | 기타 | REQ-001 -->\n<html><body>03_screen_spec.md</body></html>\n"
+
 # ── 케이스 정의 ────────────────────────────────────────────────
 # exit: 기대 종료코드 / contains: 출력에 있어야 할 문구 / absent: 없어야 할 문구
 CASES = [
@@ -91,6 +118,34 @@ CASES = [
     dict(name="레지스트리 REQ 중복·우선순위 상충 → 정합성 ⚠️ 검출 (PRD 내부)", checker=CONSIST, exit=0,
          files={"prd/PRD.md": PRD_REQ_DUP},
          contains=["우선순위가 상충하는 REQ", "REQ-001"]),
+    # ── 검증기 자체 결함 회귀 (2026-07 사냥 결과 8건) ──────────
+    dict(name="[결함1] 볼드 REQ 선언 인식 → TC 없는 MUST ❌ 검출", checker=TRACE, exit=2,
+         files={"prd/PRD.md": PRD_BOLD},
+         contains=["없는 MUST REQ", "REQ-002"], absent=["유령 참조"]),
+    dict(name="[결함2] SC-01 산출물 부재 + sc-010만 존재 → ⚠️ 검출(부분문자열 오판 금지)", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_GOOD, "ui/03_screen_spec.md": SPEC_SC01,
+                "ui/screens/sc-010-other.html": HTML_OTHER,
+                "assets/wireframes/wf-sc-010-other.html": HTML_OTHER},
+         contains=["와이어프레임 파일이 없는 화면", "SC-01"]),
+    dict(name="[결함3] MUST FS-01 미배치 + WBS에 FS-010만 → ❌ 검출(부분문자열 오판 금지)", checker=CONSIST, exit=2,
+         files={"prd/PRD.md": PRD_FS, "fnspec/기능명세서.md": FNSPEC_MUST_SHORT,
+                "wbs/WBS.md": WBS_SIMILAR},
+         contains=["WBS에 배치되지 않은 MUST FS", "FS-01"]),
+    dict(name="[결함4] TC 0개 + MUST 존재 → 추적성 ❌ 차단(경고 강등 금지)", checker=TRACE, exit=2,
+         files={"prd/PRD.md": PRD_ZERO_TC},
+         contains=["하나도 없음", "미검증"]),
+    dict(name="[결함5] 우선순위 미인식 FS('필수') → ⚠️ 표면화(조용한 게이트 회피 금지)", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_FS, "fnspec/기능명세서.md": FNSPEC_KR_PRIO},
+         contains=["우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 FS", "FS-001"]),
+    dict(name="[결함6] 스코프 제외 표 REQ는 선언 아님 → 유령 참조 ❌ 검출", checker=TRACE, exit=2,
+         files={"prd/PRD.md": PRD_SCOPE_OUT},
+         contains=["유령 참조", "REQ-050"]),
+    dict(name="[결함7] 범위 참조 결번(REQ-001~005의 002·004) → ⚠️만, ❌ 오탐 금지", checker=TRACE, exit=0,
+         files={"prd/PRD.md": PRD_RANGE},
+         contains=["범위 참조", "REQ-002"], absent=["유령 참조"]),
+    dict(name="[결함8] CHANGELOG의 과거 ID 인용 → 유령 참조 오탐 금지", checker=TRACE, exit=0,
+         files={"prd/PRD.md": PRD_GOOD, "prd/CHANGELOG.md": CHANGELOG_OLD},
+         absent=["REQ-777", "❌"]),
 ]
 
 

@@ -32,12 +32,24 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate_traceability import read, extract_refs
+from validate_traceability import read, extract_refs, registry_sections
 
 PRIORITY_RE = re.compile(r"\b(MUST|SHOULD|NICE|폐기)\b")
 STAGE_RE = re.compile(r"\bP\d(?:-\d)?\b")
 FS_ID_RE = re.compile(r"^FS-\d+$")
 REQ_ID_RE = re.compile(r"^REQ-\d+$")
+
+
+def id_in_text(fid, text):
+    """ ID가 텍스트에 '정확히' 등장하는가 — FS-01이 FS-010에 부분문자열로
+    걸리는 오탐(누락을 배치됨으로 오판)을 막기 위해 숫자 경계를 강제한다. """
+    return re.search(rf"\b{re.escape(fid)}(?!\d)", text) is not None
+
+
+def sc_numbers(names_text):
+    """ 파일명 문자열에서 화면 번호(sc-N)를 숫자 집합으로 추출.
+    부분문자열 비교(sc-01 ⊂ sc-010) 대신 숫자 동등 비교를 하기 위함. """
+    return {int(m.group(1)) for m in re.finditer(r"sc-(\d+)", names_text)}
 
 
 def cells_of(line):
@@ -48,15 +60,18 @@ def cells_of(line):
 
 
 def parse_prd_registry(prd_text):
-    """ PRD 레지스트리: REQ → (우선순위, 단계). 추적표 행의 UNKNOWN 덮어쓰기 방지. """
+    """ PRD 레지스트리: REQ → (우선순위, 단계). 추적표 행의 UNKNOWN 덮어쓰기 방지.
+    '요구사항 레지스트리' 섹션만 읽는다 — 전체를 훑으면 스코프 제외 표 등
+    다른 표의 REQ 행이 선언·우선순위로 오염된다. (헤딩 없으면 전체로 폴백) """
     reg = {}
-    for line in prd_text.splitlines():
+    source = registry_sections(prd_text) or prd_text
+    for line in source.splitlines():
         cells = cells_of(line)
         if not cells or not REQ_ID_RE.fullmatch(cells[0].replace("**", "")):
             continue
         rid = cells[0].replace("**", "")
-        joined = " | ".join(cells[1:])
-        pr = PRIORITY_RE.search(joined)
+        joined = " | ".join(c.replace("**", "") for c in cells[1:])
+        pr = PRIORITY_RE.search(joined) or PRIORITY_RE.search(joined.upper())
         st = STAGE_RE.search(joined)
         old_pr, old_st = reg.get(rid, (None, None))
         reg[rid] = (old_pr or (pr.group(1) if pr else None),
@@ -65,8 +80,8 @@ def parse_prd_registry(prd_text):
 
 
 def parse_fs_rows(fs_text):
-    """ 기능명세서 표: FS → (우선순위, 단계, 근거 REQ들, 중복 여부) """
-    rows, dup = {}, set()
+    """ 기능명세서 표: FS → (우선순위, 단계, 근거 REQ들) + 중복 ID + 우선순위 미인식 ID """
+    rows, dup, no_prio = {}, set(), set()
     for line in fs_text.splitlines():
         cells = cells_of(line)
         if not cells or not FS_ID_RE.fullmatch(cells[0].replace("**", "")):
@@ -77,19 +92,23 @@ def parse_fs_rows(fs_text):
         #  ④MUST FS WBS 배치 검사가 조용히 no-op가 된다.)
         pr = st = None
         for c in cells[1:]:
-            pm = PRIORITY_RE.search(c)
+            pm = PRIORITY_RE.search(c.replace("**", ""))
             if pm and pr is None:
                 pr = pm.group(1)
             sm = STAGE_RE.search(c)
             if sm and st is None:
                 st = sm.group(0)
+        if pr is None:
+            # 우선순위를 못 읽으면 그 FS는 MUST 검사(상속·WBS 배치)에서 통째로
+            # 빠진다(조용한 게이트 회피) — 반드시 표면화한다.
+            no_prio.add(fid)
         # 근거 REQ: 마지막 칸(연결)에서 우선 추출, 없으면 행 전체
         reqs = extract_refs(cells[-1])["REQ"] or extract_refs(" ".join(cells))["REQ"]
         if fid in rows:
             dup.add(fid)
         else:
             rows[fid] = (pr, st, reqs)
-    return rows, dup
+    return rows, dup, no_prio
 
 
 def check_project(proj_dir):
@@ -117,28 +136,26 @@ def check_project(proj_dir):
 
     # --- 1. 중복 선언 ---
     head("ID 중복 선언")
-    fs_rows, fs_dup = parse_fs_rows(fs_text) if fs_text.strip() else ({}, set())
+    fs_rows, fs_dup, fs_no_prio = (parse_fs_rows(fs_text) if fs_text.strip()
+                                   else ({}, set(), set()))
     if fs_dup:
         err(f"기능명세서에 두 번 선언된 FS: {fmt(fs_dup)}")
     else:
         ok("중복 선언 없음")
+    if fs_no_prio:
+        warn(f"우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 FS — "
+             f"상속·WBS 배치 검사에서 빠짐: {fmt(fs_no_prio)}")
 
     # --- 1b. PRD 레지스트리 REQ 중복/우선순위 상충 (C: PRD 내부 정합성) ---
-    #   '요구사항 레지스트리' 섹션(다음 ## 헤딩 전까지) 안의 REQ 행만 센다.
+    #   '요구사항 레지스트리' 섹션 안의 REQ 행만 센다 (헤딩 레벨 무관 — 공용 헬퍼).
     #   전체 PRD를 훑으면 스코프 표·추적표 등 다른 표의 REQ까지 잡혀 오탐이 폭발한다.
     head("PRD 레지스트리 REQ 중복 선언")
     req_prio = {}
-    in_reg = False
-    for line in prd_text.splitlines():
-        if re.match(r"^##\s", line):
-            in_reg = "요구사항 레지스트리" in line
-            continue
-        if not in_reg:
-            continue
+    for line in (registry_sections(prd_text) or "").splitlines():
         cells = cells_of(line)
         if not cells or not REQ_ID_RE.fullmatch(cells[0].replace("**", "")):
             continue
-        pm = PRIORITY_RE.search(" | ".join(cells[1:]))
+        pm = PRIORITY_RE.search(" | ".join(c.replace("**", "") for c in cells[1:]))
         if not pm:
             continue
         req_prio.setdefault(cells[0].replace("**", ""), []).append(pm.group(1))
@@ -180,7 +197,7 @@ def check_project(proj_dir):
         if wbs_text.strip():
             head("MUST FS의 WBS 배치")
             must_fs = {f for f, (pr, _, _) in fs_rows.items() if pr == "MUST"}
-            missing = {f for f in must_fs if f not in wbs_text}
+            missing = {f for f in must_fs if not id_in_text(f, wbs_text)}
             if missing:
                 err(f"WBS에 배치되지 않은 MUST FS: {fmt(missing)}")
             else:
@@ -192,8 +209,11 @@ def check_project(proj_dir):
         declared_sc = {m.group(0).strip("()") for m in re.finditer(r"\(SC-\d+\)", spec_text)}
         wf_names = " ".join(p.name.lower() for p in (proj_dir / "assets" / "wireframes").glob("*.html"))
         scr_names = " ".join(p.name.lower() for p in (proj_dir / "ui" / "screens").glob("*.html"))
-        no_wf = {s for s in declared_sc if f"sc-{s.split('-')[1]}" not in wf_names}
-        no_scr = {s for s in declared_sc if f"sc-{s.split('-')[1]}" not in scr_names}
+        # 숫자 동등 비교 — 부분문자열 비교는 sc-01⊂sc-010, sc-1⊂sc-15에 걸려
+        # '산출물 없음'을 '있음'으로 오판한다
+        wf_nums, scr_nums = sc_numbers(wf_names), sc_numbers(scr_names)
+        no_wf = {s for s in declared_sc if int(s.split("-")[1]) not in wf_nums}
+        no_scr = {s for s in declared_sc if int(s.split("-")[1]) not in scr_nums}
         if no_wf:
             warn(f"와이어프레임 파일이 없는 화면: {fmt(no_wf)}")
         if no_scr:
