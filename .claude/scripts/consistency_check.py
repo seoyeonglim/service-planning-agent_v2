@@ -14,6 +14,7 @@
   - 화면 HTML이 명세·주석도해로 상호 링크되고, 가리키는 주석도해가 실재하나
   - 폐기된 REQ가 활성 문서에서 여전히 참조되나
   - 같은 FS ID가 두 번 선언되지 않았나
+  - PRD 레지스트리에 같은 REQ가 중복 선언·우선순위 상충하지 않았나 (PRD 내부 정합성)
 
   ⚠️ 문장의 의미가 서로 어긋나는지(예: PRD "3초" vs FS "5초")는 기계로 판정 불가 —
   그건 스킬 15(내용 정합성 검증)의 에이전트 의미 대조가 담당한다.
@@ -121,6 +122,35 @@ def check_project(proj_dir):
         err(f"기능명세서에 두 번 선언된 FS: {fmt(fs_dup)}")
     else:
         ok("중복 선언 없음")
+
+    # --- 1b. PRD 레지스트리 REQ 중복/우선순위 상충 (C: PRD 내부 정합성) ---
+    #   '요구사항 레지스트리' 섹션(다음 ## 헤딩 전까지) 안의 REQ 행만 센다.
+    #   전체 PRD를 훑으면 스코프 표·추적표 등 다른 표의 REQ까지 잡혀 오탐이 폭발한다.
+    head("PRD 레지스트리 REQ 중복 선언")
+    req_prio = {}
+    in_reg = False
+    for line in prd_text.splitlines():
+        if re.match(r"^##\s", line):
+            in_reg = "요구사항 레지스트리" in line
+            continue
+        if not in_reg:
+            continue
+        cells = cells_of(line)
+        if not cells or not REQ_ID_RE.fullmatch(cells[0].replace("**", "")):
+            continue
+        pm = PRIORITY_RE.search(" | ".join(cells[1:]))
+        if not pm:
+            continue
+        req_prio.setdefault(cells[0].replace("**", ""), []).append(pm.group(1))
+    dup_req = {r for r, ps in req_prio.items() if len(ps) > 1}
+    conflict_req = {r for r in dup_req if len(set(req_prio[r])) > 1}
+    if conflict_req:
+        warn("레지스트리에서 우선순위가 상충하는 REQ: "
+             + ", ".join(f"{r}({'/'.join(req_prio[r])})" for r in sorted(conflict_req)))
+    if dup_req - conflict_req:
+        warn(f"레지스트리에 두 번 이상 정의된 REQ: {fmt(dup_req - conflict_req)}")
+    if not dup_req:
+        ok("REQ 중복 선언 없음")
 
     # --- 2. FS 우선순위 상속 / 단계 일치 (fnspec 존재 시) ---
     if fs_rows:

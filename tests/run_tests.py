@@ -57,6 +57,9 @@ WBS_NOFS = "## WBS\n- 주차1: 환경 구성\n- 주차2: 배포\n"
 PRD_RETIRED = "# PRD\n" + REG("| REQ-001 | 로그인 | MUST |\n| REQ-002 | 구기능 | 폐기 |") + \
               "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n"
 UI_ZOMBIE = "## 정보구조\n랜딩은 REQ-002 를 계속 노출한다.\n"
+# PRD 레지스트리에 같은 REQ가 서로 다른 우선순위로 중복 선언 (PRD 내부 정합성)
+PRD_REQ_DUP = "# PRD\n" + REG("| REQ-001 | 로그인 | MUST |\n| REQ-001 | 로그인(중복) | SHOULD |") + \
+              "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n"
 
 # ── 케이스 정의 ────────────────────────────────────────────────
 # exit: 기대 종료코드 / contains: 출력에 있어야 할 문구 / absent: 없어야 할 문구
@@ -85,6 +88,9 @@ CASES = [
     dict(name="폐기 REQ를 활성 문서가 참조 → 정합성 ❌ 검출", checker=CONSIST, exit=2,
          files={"prd/PRD.md": PRD_RETIRED, "ui/01_information_architecture.md": UI_ZOMBIE},
          contains=["폐기됐는데 활성 문서", "REQ-002"]),
+    dict(name="레지스트리 REQ 중복·우선순위 상충 → 정합성 ⚠️ 검출 (PRD 내부)", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_REQ_DUP},
+         contains=["우선순위가 상충하는 REQ", "REQ-001"]),
 ]
 
 
