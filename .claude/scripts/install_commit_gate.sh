@@ -42,6 +42,9 @@ fi
 cat > "$HOOK" <<EOF
 #!/bin/sh
 # 서비스 기획 에이전트 커밋 게이트 (install_commit_gate.sh 자동 생성 — 직접 수정 금지)
+# 안전장치: 워크플로우 레포가 이동·삭제됐으면 조용히 통과 —
+# 절대 경로가 빈집이 됐을 때 무관한 저장소의 커밋까지 막지 않기 위함
+[ -x "$GATE" ] || exit 0
 exec "$GATE" "\$1"
 EOF
 chmod +x "$HOOK"

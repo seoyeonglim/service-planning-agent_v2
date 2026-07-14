@@ -32,9 +32,8 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from validate_traceability import read, extract_refs, registry_sections
+from validate_traceability import read, extract_refs, registry_sections, find_priority
 
-PRIORITY_RE = re.compile(r"\b(MUST|SHOULD|NICE|폐기)\b")
 STAGE_RE = re.compile(r"\bP\d(?:-\d)?\b")
 FS_ID_RE = re.compile(r"^FS-\d+$")
 REQ_ID_RE = re.compile(r"^REQ-\d+$")
@@ -70,12 +69,12 @@ def parse_prd_registry(prd_text):
         if not cells or not REQ_ID_RE.fullmatch(cells[0].replace("**", "")):
             continue
         rid = cells[0].replace("**", "")
-        joined = " | ".join(c.replace("**", "") for c in cells[1:])
-        pr = PRIORITY_RE.search(joined) or PRIORITY_RE.search(joined.upper())
-        st = STAGE_RE.search(joined)
+        # V와 동일한 판정 함수 공유 — 두 검증기가 같은 문서를 다르게 읽지 않게 한다
+        pr = find_priority(cells[1:])
+        pr = None if pr == "UNKNOWN" else pr
+        st = STAGE_RE.search(" | ".join(cells[1:]))
         old_pr, old_st = reg.get(rid, (None, None))
-        reg[rid] = (old_pr or (pr.group(1) if pr else None),
-                    old_st or (st.group(0) if st else None))
+        reg[rid] = (old_pr or pr, old_st or (st.group(0) if st else None))
     return reg
 
 
@@ -90,11 +89,10 @@ def parse_fs_rows(fs_text):
         # 우선순위·단계: 한 셀에 같이 있든("SHOULD·P3-2") 별도 칸으로 나뉘든 모두 인식.
         # (한 셀 결합만 인식하면, 우선순위 단독 칸 템플릿으로 쓴 표에서 ②우선순위 상속·
         #  ④MUST FS WBS 배치 검사가 조용히 no-op가 된다.)
-        pr = st = None
+        pr = find_priority(cells[1:])
+        pr = None if pr == "UNKNOWN" else pr
+        st = None
         for c in cells[1:]:
-            pm = PRIORITY_RE.search(c.replace("**", ""))
-            if pm and pr is None:
-                pr = pm.group(1)
             sm = STAGE_RE.search(c)
             if sm and st is None:
                 st = sm.group(0)
@@ -143,7 +141,7 @@ def check_project(proj_dir):
     else:
         ok("중복 선언 없음")
     if fs_no_prio:
-        warn(f"우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 FS — "
+        warn(f"우선순위(MUST/SHOULD/NICE/폐기/제외)를 인식하지 못한 FS — "
              f"상속·WBS 배치 검사에서 빠짐: {fmt(fs_no_prio)}")
 
     # --- 1b. PRD 레지스트리 REQ 중복/우선순위 상충 (C: PRD 내부 정합성) ---
@@ -155,10 +153,10 @@ def check_project(proj_dir):
         cells = cells_of(line)
         if not cells or not REQ_ID_RE.fullmatch(cells[0].replace("**", "")):
             continue
-        pm = PRIORITY_RE.search(" | ".join(c.replace("**", "") for c in cells[1:]))
-        if not pm:
+        pm = find_priority(cells[1:])
+        if pm == "UNKNOWN":
             continue
-        req_prio.setdefault(cells[0].replace("**", ""), []).append(pm.group(1))
+        req_prio.setdefault(cells[0].replace("**", ""), []).append(pm)
     dup_req = {r for r, ps in req_prio.items() if len(ps) > 1}
     conflict_req = {r for r in dup_req if len(set(req_prio[r])) > 1}
     if conflict_req:

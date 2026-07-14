@@ -88,6 +88,14 @@ WBS_SIMILAR = "## WBS\n- 주차1: FS-010 관련 작업\n"
 SPEC_SC01 = "## 화면 명세서\n### 화면명: 랜딩 (SC-01)\n- **관련 REQ:** REQ-001\n"
 HTML_OTHER = "<!DOCTYPE html>\n<!-- SC-010 | 기타 | REQ-001 -->\n<html><body>03_screen_spec.md</body></html>\n"
 
+# ── 우선순위 어휘 '제외'(범위 밖 이관) — 폐기와 구분되는 5번째 상태 ──────────
+# 제외 REQ: TC 없어도 되고, 활성 문서가 참조해도 오류 아님(범위 경계 기록 — 폐기와 다름)
+PRD_EXCLUDED = "# PRD\n" + REG("| REQ-001 | 로그인 | MUST |\n| REQ-090 | OCR 업로드 | **제외** |\n| REQ-091 | 어시스턴트 탭 | 제외(2차) |") + \
+               "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n"
+UI_REF_EXCLUDED = "## 정보구조\n랜딩은 REQ-001 기준. REQ-090 은 확장 로드맵으로 이관되어 본 사업 미구현.\n"
+# 설명 속 일반 단어 '제외'는 우선순위가 아님 — 영문 토큰(MUST)이 이겨야 함
+PRD_KR_IN_DESC = "# PRD\n" + REG("| REQ-001 | 로그인(게스트 제외) | MUST |") + "\n"
+
 # ── 케이스 정의 ────────────────────────────────────────────────
 # exit: 기대 종료코드 / contains: 출력에 있어야 할 문구 / absent: 없어야 할 문구
 CASES = [
@@ -136,7 +144,7 @@ CASES = [
          contains=["하나도 없음", "미검증"]),
     dict(name="[결함5] 우선순위 미인식 FS('필수') → ⚠️ 표면화(조용한 게이트 회피 금지)", checker=CONSIST, exit=0,
          files={"prd/PRD.md": PRD_FS, "fnspec/기능명세서.md": FNSPEC_KR_PRIO},
-         contains=["우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 FS", "FS-001"]),
+         contains=["우선순위(MUST/SHOULD/NICE/폐기/제외)를 인식하지 못한 FS", "FS-001"]),
     dict(name="[결함6] 스코프 제외 표 REQ는 선언 아님 → 유령 참조 ❌ 검출", checker=TRACE, exit=2,
          files={"prd/PRD.md": PRD_SCOPE_OUT},
          contains=["유령 참조", "REQ-050"]),
@@ -146,6 +154,16 @@ CASES = [
     dict(name="[결함8] CHANGELOG의 과거 ID 인용 → 유령 참조 오탐 금지", checker=TRACE, exit=0,
          files={"prd/PRD.md": PRD_GOOD, "prd/CHANGELOG.md": CHANGELOG_OLD},
          absent=["REQ-777", "❌"]),
+    # ── 우선순위 어휘 '제외' (범위 밖 이관 상태) ──────────
+    dict(name="[제외] 제외 REQ는 TC 불요·미인식 경고 없음 → 추적성 통과", checker=TRACE, exit=0,
+         files={"prd/PRD.md": PRD_EXCLUDED},
+         absent=["❌", "인식하지 못한 REQ"]),
+    dict(name="[제외] 제외 REQ를 활성 문서가 참조 → 좀비 아님(폐기와 구분)", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_EXCLUDED, "ui/01_information_architecture.md": UI_REF_EXCLUDED},
+         absent=["❌"]),
+    dict(name="[제외] 설명 속 '제외'보다 영문 MUST 우선 → TC 없는 MUST ❌ 검출", checker=TRACE, exit=2,
+         files={"prd/PRD.md": PRD_KR_IN_DESC},
+         contains=["MUST REQ 1건 미검증"]),
 ]
 
 

@@ -27,9 +27,12 @@ import sys
 import re
 from pathlib import Path
 
-PRIORITIES = ("MUST", "SHOULD", "NICE", "폐기")
-# 우선순위 토큰: 셀 안에 다른 글자와 섞여 있어도("MUST·P1") 인식한다
-PRIO_TOKEN_RE = re.compile(r"\b(MUST|SHOULD|NICE)\b|(폐기)")
+# 우선순위 어휘(고정 5종): MUST/SHOULD/NICE(활성) · 폐기(하기로 했다 접음 —
+# 활성 문서가 참조하면 오류) · 제외(계약·사업 범위 밖 이관 — 경계 기록용 행,
+# 참조 허용. 폐기와 의미가 다르므로 통합 금지)
+PRIORITIES = ("MUST", "SHOULD", "NICE", "폐기", "제외")
+PRIO_EN_RE = re.compile(r"\b(MUST|SHOULD|NICE)\b")
+PRIO_KR_RE = re.compile(r"폐기|제외")
 
 # REQ-070·071·072·074, 010~016·020  /  REQ-090~093  /  REQ-001~005 형태를 통째로 잡는다
 REF_RE = re.compile(r"(REQ|EC|TC|SC)-(\d+(?:~\d+)?(?:[·,]\s*\d+(?:~\d+)?)*)")
@@ -39,12 +42,20 @@ TC_COMPOUND_RE = re.compile(r"TC-\d+-\d+")
 
 def find_priority(cells):
     """ 표의 셀들에서 우선순위 토큰을 찾는다. 못 찾으면 UNKNOWN.
-    (셀 전체 일치가 아니라 토큰 검색 — 'MUST·P1'·'**MUST**' 같은 표기도 인식) """
+    - 셀 전체 일치가 아니라 토큰 검색: 'MUST·P1'·'**MUST**'·'제외(2차)' 표기 인식
+    - 영문 토큰이 행 어디에든 있으면 우선 채택 — '로그인(게스트 제외) | MUST'처럼
+      설명 속 일반 단어(제외·폐기)를 우선순위로 오인하지 않게 하기 위함 """
+    kr = None
     for c in cells:
-        m = PRIO_TOKEN_RE.search(c.replace("**", "").upper())
+        t = c.replace("**", "")
+        m = PRIO_EN_RE.search(t.upper())
         if m:
-            return m.group(1) or "폐기"
-    return "UNKNOWN"
+            return m.group(1)
+        if kr is None:
+            k = PRIO_KR_RE.search(t)
+            if k:
+                kr = k.group(0)
+    return kr or "UNKNOWN"
 
 
 def expand_run(prefix, run):
@@ -235,7 +246,8 @@ def check_project(proj_dir):
 
     req_ids = set(declared["REQ"])
     must = {r for r, p in declared["REQ"].items() if p == "MUST"}
-    retired = {r for r, p in declared["REQ"].items() if p == "폐기"}
+    # 비활성 상태 — 폐기(접음)·제외(범위 밖 이관)는 TC·화면 매핑을 요구하지 않는다
+    inactive = {r for r, p in declared["REQ"].items() if p in ("폐기", "제외")}
     unknown_prio = sorted(r for r, p in declared["REQ"].items() if p == "UNKNOWN")
 
     rep.head(f"선언 현황")
@@ -245,7 +257,7 @@ def check_project(proj_dir):
         rep.warn("'요구사항 레지스트리' 헤딩을 찾지 못해 문서 전체에서 REQ 표를 인식함 "
                  "(스코프 제외 표 등이 선언으로 오염될 수 있음 — 헤딩을 추가하세요)")
     if unknown_prio:
-        rep.warn(f"우선순위(MUST/SHOULD/NICE/폐기)를 인식하지 못한 REQ — "
+        rep.warn(f"우선순위(MUST/SHOULD/NICE/폐기/제외)를 인식하지 못한 REQ — "
                  f"TC 커버리지 검사에서 빠짐: {fmt(unknown_prio)}")
 
     # --- 1. PRD 내부 정합성: EC/TC가 가리키는 REQ가 실제로 정의됐는가 ---
@@ -297,8 +309,8 @@ def check_project(proj_dir):
         ui_refs = {k: ui_exp[k] | ui_rng[k] for k in ui_exp}
         mapped = ui_refs["REQ"] & req_ids
         orphan_must = sorted(r for r in must if r not in mapped)
-        # 폐기 REQ는 화면에서 사라지는 것이 정상이므로 미매핑 경고 대상이 아니다
-        orphan_other = sorted(r for r in (req_ids - must - retired)
+        # 폐기·제외 REQ는 화면에 없는 것이 정상이므로 미매핑 경고 대상이 아니다
+        orphan_other = sorted(r for r in (req_ids - must - inactive)
                               if r not in ui_refs["REQ"])
         rep.info(f"화면/플로우에 매핑된 REQ: {len(mapped)}/{len(req_ids)}")
         if orphan_must:
