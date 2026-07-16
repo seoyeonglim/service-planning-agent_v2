@@ -12,6 +12,7 @@
   - 모든 MUST FS가 WBS에 배치됐나
   - 화면(SC)마다 와이어프레임·본 HTML 산출물이 존재하나
   - 화면 HTML이 명세·주석도해로 상호 링크되고, 가리키는 주석도해가 실재하나
+  - 화면 인덱스(ui/screens/index.html, 자동 생성)가 존재하고 전 화면을 수록하나
   - 폐기된 REQ가 활성 문서에서 여전히 참조되나
   - 같은 FS ID가 두 번 선언되지 않았나
   - PRD 레지스트리에 같은 REQ가 중복 선언·우선순위 상충하지 않았나 (PRD 내부 정합성)
@@ -223,7 +224,9 @@ def check_project(proj_dir):
     #   본 HTML이 SC-ID로 명세·주석도해와 1:1 연결되는지 검사한다.
     #   AI·스크립트가 화면 하나만 열어도 나머지를 따라갈 수 있게 하는 규칙(스킬 11).
     screens_dir = proj_dir / "ui" / "screens"
-    html_files = sorted(screens_dir.glob("*.html")) if screens_dir.is_dir() else []
+    # index.html은 자동 생성 인덱스(generate_screen_index.py) — 화면이 아니므로 제외
+    html_files = sorted(p for p in screens_dir.glob("*.html")
+                        if p.name != "index.html") if screens_dir.is_dir() else []
     if html_files:
         head("화면 HTML 상호 링크")
         wf_files = {p.name for p in (proj_dir / "assets" / "wireframes").glob("*.html")}
@@ -242,6 +245,23 @@ def check_project(proj_dir):
             warn(f"실재하지 않는 주석도해를 가리키는 화면 HTML: {', '.join(sorted(set(bad_annot)))}")
         if not no_spec and not bad_annot:
             ok(f"화면 HTML {len(html_files)}개 상호 링크 정상")
+
+    # --- 4c. 화면 인덱스(index.html) 존재·신선도 ---
+    #   개발자용 한눈 인덱스가 있고, 모든 화면 파일을 담고 있는지 본다.
+    #   자동 생성물이라 재생성만 하면 되므로 경고(⚠️)로만 표면화한다.
+    if html_files:
+        head("화면 인덱스(자동 생성)")
+        regen = "재생성: python3 .claude/scripts/generate_screen_index.py"
+        index_path = screens_dir / "index.html"
+        if not index_path.is_file():
+            warn(f"화면 인덱스(ui/screens/index.html)가 없음 — {regen}")
+        else:
+            idx_text = read(index_path)
+            stale = [p.name for p in html_files if p.name not in idx_text]
+            if stale:
+                warn(f"화면 인덱스에 없는 화면 HTML(인덱스가 낡음): {fmt(set(stale))} — {regen}")
+            else:
+                ok(f"화면 인덱스가 화면 {len(html_files)}개 전부 수록")
 
     # --- 5. 폐기 REQ의 활성 참조 ---
     retired = {r for r, (pr, _) in registry.items() if pr == "폐기"}

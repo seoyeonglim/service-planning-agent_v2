@@ -238,7 +238,10 @@ def check_project(proj_dir):
         for f in ("01_information_architecture.md", "02_user_flow.md",
                   "03_screen_spec.md", "04_design_direction.md")
     )
-    screens_text = "\n".join(read(p) for p in sorted(screens_dir.glob("*.html")))
+    # index.html은 자동 생성 인덱스(generate_screen_index.py)라 화면이 아니다 —
+    # 함께 읽으면 낡은 인덱스의 옛 참조가 유령 참조로 오탐된다.
+    screens_text = "\n".join(read(p) for p in sorted(screens_dir.glob("*.html"))
+                             if p.name != "index.html")
 
     reg_text = registry_sections(prd_text)
     declared = parse_declarations(prd_text, spec_text, reg_text or prd_text)
@@ -347,7 +350,7 @@ def check_project(proj_dir):
         html_rng_gap = {r for r in sc_rng["REQ"] if r not in req_ids} - dangling_html
         if html_rng_gap:
             rep.warn(f"화면 HTML의 범위 참조 전개에만 걸리고 PRD에 없는 번호: {fmt(html_rng_gap)}")
-        n_screens = len(list(screens_dir.glob("*.html")))
+        n_screens = len([p for p in screens_dir.glob("*.html") if p.name != "index.html"])
         rep.info(f"생성된 화면 HTML: {n_screens}개")
 
     return rep
