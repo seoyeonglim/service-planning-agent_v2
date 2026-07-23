@@ -361,7 +361,10 @@ def main():
     strict = "--strict" in argv
     write_report = "--report" in argv
     positional = [a for a in argv if not a.startswith("--")]
-    docs_dir = Path(positional[0]) if positional else Path("docs")
+    ROOT = Path(__file__).resolve().parents[2]  # 워크플로우 루트 (CWD 무관)
+    docs_dir = Path(positional[0]) if positional else ROOT / "docs"
+    if not docs_dir.exists() and not docs_dir.is_absolute() and (ROOT / docs_dir).exists():
+        docs_dir = ROOT / docs_dir  # 프로젝트 폴더 등에서 상대경로로 실행돼도 루트 기준으로 복원
 
     if not docs_dir.is_dir():
         # 훅에서 docs가 아직 없을 수 있음 → 조용히 통과
