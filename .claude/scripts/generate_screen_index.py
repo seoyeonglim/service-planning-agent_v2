@@ -130,6 +130,7 @@ border-radius:9999px;padding:4px 8px}
 .chip.NICE{background:#DBEAFE;color:var(--nice)}
 .chip.폐기,.chip.제외{background:var(--chip);color:var(--off);text-decoration:line-through}
 h2.name{font-size:15px;font-weight:700}
+.actor{font-size:12px;color:var(--sub);margin-top:-4px}
 .trace{font-size:11px;color:var(--sub);line-height:1.6;word-break:break-all}
 .links{margin-top:auto;padding-top:8px;border-top:1px dashed var(--line);
 display:flex;gap:10px;flex-wrap:wrap;font-size:12px}
@@ -156,10 +157,12 @@ def render_card(row):
     pr = row.get("priority") or ""
     pr_cls = pr if pr in ("MUST", "SHOULD", "NICE", "폐기", "제외") else ""
     chips = [f'<span class="sc">{esc(sc)}</span>']
-    if row.get("kind"):
-        chips.append(f'<span class="chip">{esc(row["kind"])}</span>')
     if pr:
         chips.append(f'<span class="chip {esc(pr_cls)}">{esc(pr)}</span>')
+    # 큰 제목 = 화면명(kind), 사용자(name)는 작은 부제 — 화면 구분이 한눈에 되게
+    title = row.get("kind") or row.get("name") or row.get("title") or row.get("file", "")
+    actor = row.get("name") or ""
+    actor_line = f'<p class="actor">사용자: {esc(actor)}</p>' if actor and actor != title else ""
 
     if row.get("file"):
         thumb = (f'<a class="thumb" href="{esc(row["file"])}" target="_blank" rel="noopener">'
@@ -186,7 +189,8 @@ def render_card(row):
   {thumb}
   <div class="meta">
     <div class="rowline">{''.join(chips)}</div>
-    <h2 class="name">{esc(row.get('name') or row.get('title') or '')}</h2>
+    <h2 class="name">{esc(title)}</h2>
+    {actor_line}
     <p class="trace">{' · '.join(trace)}</p>
     <div class="links">{' '.join(links)}</div>
   </div>
