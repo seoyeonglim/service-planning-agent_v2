@@ -96,6 +96,19 @@ UI_REF_EXCLUDED = "## 정보구조\n랜딩은 REQ-001 기준. REQ-090 은 확장
 # 설명 속 일반 단어 '제외'는 우선순위가 아님 — 영문 토큰(MUST)이 이겨야 함
 PRD_KR_IN_DESC = "# PRD\n" + REG("| REQ-001 | 로그인(게스트 제외) | MUST |") + "\n"
 
+# ── 근거 마커([추정치]·[출처 필요]) — 초안 한정, 확정 전 해소 ──────────
+_MARKED_BODY = ("## 문제 정의\n이관율 12% [출처 필요], 월 8,000건 "
+                "[추정치 — 일 평균 260건 × 30일] 규모다.\n")
+_PRD_STATUS = lambda st, body="": ("# PRD\n## 문서 정보\n- 문서 버전: v1.0\n- 상태: " + st + "\n"
+                                   + REG("| REQ-001 | 로그인 | MUST |")
+                                   + "## 테스트 케이스\n### TC-001 (REQ-001)\n검증\n" + body)
+PRD_MARKER_DRAFT = _PRD_STATUS("초안", _MARKED_BODY)
+PRD_MARKER_BASELINE = _PRD_STATUS("확정(baseline)", _MARKED_BODY)
+# 템플릿의 선택지 나열 행을 '확정'으로 오판하면 초안이 통째로 막힌다
+PRD_MARKER_TEMPLATE = _PRD_STATUS("초안 / 리뷰 중 / 확정 / 반려", _MARKED_BODY)
+# CHANGELOG는 AS-IS 원문을 그대로 인용하므로 마커가 정상적으로 남는 곳
+CHANGELOG_MARKER = "# 변경 기록\n## CR-001\n- AS-IS: 월 8,000건 [추정치]\n- TO-BE: 월 7,200건(계정계 집계)\n"
+
 # ── 케이스 정의 ────────────────────────────────────────────────
 # exit: 기대 종료코드 / contains: 출력에 있어야 할 문구 / absent: 없어야 할 문구
 CASES = [
@@ -164,6 +177,19 @@ CASES = [
     dict(name="[제외] 설명 속 '제외'보다 영문 MUST 우선 → TC 없는 MUST ❌ 검출", checker=TRACE, exit=2,
          files={"prd/PRD.md": PRD_KR_IN_DESC},
          contains=["MUST REQ 1건 미검증"]),
+    # ── 근거 마커(초안 한정)의 확정본 잔존 ──────────
+    dict(name="[마커] 확정본에 [추정치]·[출처 필요] 잔존 → 정합성 ❌ 검출", checker=CONSIST, exit=2,
+         files={"prd/PRD.md": PRD_MARKER_BASELINE},
+         contains=["확정(baseline)인데 초안 한정 마커가 남음", "PRD.md"]),
+    dict(name="[마커] 초안의 마커는 오류 아님 → 해소 대상 목록으로만 표시", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_MARKER_DRAFT},
+         contains=["확정 전 해소 대상 마커"], absent=["❌"]),
+    dict(name="[마커] 템플릿 선택지 행('초안 / 리뷰 중 / 확정 / 반려')을 확정으로 오판 금지", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": PRD_MARKER_TEMPLATE},
+         contains=["확정 전 해소 대상 마커"], absent=["❌"]),
+    dict(name="[마커] CHANGELOG의 AS-IS 인용 마커는 잔존으로 오탐 금지", checker=CONSIST, exit=0,
+         files={"prd/PRD.md": _PRD_STATUS("확정(baseline)"), "prd/CHANGELOG.md": CHANGELOG_MARKER},
+         contains=["초안 한정 마커([추정치]·[출처 필요]) 없음"], absent=["❌"]),
 ]
 
 

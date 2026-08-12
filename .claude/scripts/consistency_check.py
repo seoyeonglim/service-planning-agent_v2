@@ -14,6 +14,7 @@
   - 화면 HTML이 명세·주석도해로 상호 링크되고, 가리키는 주석도해가 실재하나
   - 화면 인덱스(ui/screens/index.html, 자동 생성)가 존재하고 전 화면을 수록하나
   - 폐기된 REQ가 활성 문서에서 여전히 참조되나
+  - 초안 한정 마커([추정치]·[출처 필요])가 확정(baseline)본에 남아 있나
   - 같은 FS ID가 두 번 선언되지 않았나
   - PRD 레지스트리에 같은 REQ가 중복 선언·우선순위 상충하지 않았나 (PRD 내부 정합성)
 
@@ -38,6 +39,9 @@ from validate_traceability import read, extract_refs, registry_sections, find_pr
 STAGE_RE = re.compile(r"\bP\d(?:-\d)?\b")
 FS_ID_RE = re.compile(r"^FS-\d+$")
 REQ_ID_RE = re.compile(r"^REQ-\d+$")
+# 근거 표기 마커 — 초안(v0.x) 한정. [추정치 — 산출근거] 처럼 뒤에 설명이 붙는 형태도 잡는다.
+DRAFT_MARKER_RE = re.compile(r"\[(?:추정치|출처 필요)(?:\s*[—\-–:][^\]]*)?\]")
+STATUS_RE = re.compile(r"^\s*(?:[-*]\s*)?\**\s*상태\s*\**\s*[::]\s*(.+)$")
 
 
 def id_in_text(fid, text):
@@ -108,6 +112,22 @@ def parse_fs_rows(fs_text):
         else:
             rows[fid] = (pr, st, reqs)
     return rows, dup, no_prio
+
+
+def prd_is_baselined(prd_text):
+    """ PRD 문서 정보 헤더의 '상태'가 확정(baseline)인가.
+    템플릿의 선택지 나열 행("상태: 초안 / 리뷰 중 / 확정 / 반려")은 값이 아니므로
+    슬래시가 든 행은 건너뛴다 — 템플릿을 그대로 복사한 초안을 확정으로 오판하지 않기 위함. """
+    for line in prd_text.splitlines():
+        m = STATUS_RE.match(line)
+        if not m:
+            continue
+        v = m.group(1).split("<!--")[0].strip()
+        if "/" in v:
+            continue
+        if "확정" in v and "미확정" not in v:
+            return True
+    return False
 
 
 def check_project(proj_dir):
@@ -262,6 +282,29 @@ def check_project(proj_dir):
                 warn(f"화면 인덱스에 없는 화면 HTML(인덱스가 낡음): {fmt(set(stale))} — {regen}")
             else:
                 ok(f"화면 인덱스가 화면 {len(html_files)}개 전부 수록")
+
+    # --- 4d. 초안 한정 마커([추정치]·[출처 필요])의 확정본 잔존 ---
+    #   출처 없는 정량 주장은 초안에서 마커를 달아 쓸 수 있지만, v1.0 확정 전에
+    #   ① 출처 표기 ② 가정/미결 이관 ③ 삭제 중 하나로 해소해야 한다(CLAUDE.md 근거 표기).
+    #   초안 단계에선 오류가 아니라 '해소 대상 목록'으로만 보여 준다.
+    head("근거 마커(초안 한정) 잔존")
+    marked = []
+    for p in (sorted((proj_dir / "prd").glob("*.md"))
+              + sorted((proj_dir / "ui").glob("*.md"))
+              + sorted((proj_dir / "fnspec").glob("*.md"))):
+        # _리포트(자동 생성)·CHANGELOG(AS-IS 원문 인용)는 마커가 정상적으로 남는 곳
+        if p.name.startswith("_") or p.name == "CHANGELOG.md":
+            continue
+        n = len(DRAFT_MARKER_RE.findall(read(p)))
+        if n:
+            marked.append(f"{p.parent.name}/{p.name}({n}건)")
+    if not marked:
+        ok("초안 한정 마커([추정치]·[출처 필요]) 없음")
+    elif prd_is_baselined(prd_text):
+        err("확정(baseline)인데 초안 한정 마커가 남음 — 출처 표기·가정/미결 이관·삭제 중 "
+            f"하나로 해소: {', '.join(marked)}")
+    else:
+        ok(f"초안 — 확정 전 해소 대상 마커: {', '.join(marked)}")
 
     # --- 5. 폐기 REQ의 활성 참조 ---
     retired = {r for r, (pr, _) in registry.items() if pr == "폐기"}
