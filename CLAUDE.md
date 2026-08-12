@@ -232,7 +232,7 @@ UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 - **프로젝트 저장소 추적 범위(화이트리스트):** `prd/ · ui/ · fnspec/ · meetings/ · assets/wireframes/`만 추적한다(프로젝트 .gitignore를 화이트리스트 방식으로 작성). `ref/`(고객사 원자료)·`sow/`(계약)·`wbs/`(내부 일정)·`diagrams/`·`_archive/`는 로컬 전용. assets/wireframes를 포함하는 이유: 화면 명세서가 와이어프레임을 상대경로로 링크하므로 빠지면 링크가 깨진다.
 - **동작 규칙:** 사용자가 프로젝트 작업 중 "커밋해/푸시해"라고 하면, **해당 프로젝트 폴더의 저장소에서만** 커밋·푸시한다. 워크플로우 레포의 커밋·푸시는 별도 요청일 때만.
 - **PII 게이트(푸시 전 필수):** 프로젝트 .gitignore에 고객 원자료·PII(예: `ref/` 하위 수집일자 폴더) 제외 규칙이 있는지 확인하고, `git ls-files`로 상담데이터·이메일(.eml)·개인정보 파일이 스테이징되지 않았음을 점검한 뒤에만 푸시한다.
-- **커밋 게이트(자동):** 프로젝트 저장소에서 커밋하면 `commit-msg` 훅이 `commit_gate.sh`를 통해 ① `validate_traceability.py --strict` ② `consistency_check.py --strict`를 순서대로 돌리고, ❌ 오류가 있으면 커밋을 차단한다(경고 ⚠️는 통과). ③ 의미 대조(스킬 15)는 훅이 대신 못 하므로, 커밋 메시지에 `[handoff]`가 있으면(개발 핸드오프 커밋) `Skill15-Reviewed: yes` 토큰을 요구해 차단한다 — 그 전에 스킬 15를 실제로 수행하고 토큰을 단다. 이 게이트는 `git config --global init.templateDir`에 등록돼 **새 프로젝트를 `git init` 할 때 자동 설치**된다(prd/ 없는 비-기획 저장소에선 조용히 통과). 템플릿 이전에 만든 저장소는 `bash .claude/scripts/install_commit_gate.sh docs/[프로젝트명]`로 1회 수동 설치.
+- **커밋 게이트(자동):** 프로젝트 저장소에서 커밋하면 `commit-msg` 훅이 `commit_gate.sh`를 통해 ① `validate_traceability.py --strict` ② `consistency_check.py --strict`를 순서대로 돌리고, ❌ 오류가 있으면 커밋을 차단한다(경고 ⚠️는 통과). ③ 의미 대조(스킬 15)는 훅이 대신 못 하므로, 커밋 메시지에 `[handoff]`가 있으면(개발 핸드오프 커밋) `Skill15-Reviewed: yes` 토큰을 요구해 차단한다 — 그 전에 스킬 15를 실제로 수행하고 토큰을 단다. 이 게이트는 `git config --global init.templateDir`에 등록돼 **새 프로젝트를 `git init` 할 때 자동 설치**된다(prd/ 없는 비-기획 저장소에선 조용히 통과). 템플릿 이전에 만든 저장소는 `bash .claude/scripts/install_commit_gate.sh docs/[프로젝트명]`로 1회 수동 설치. ④ 디자인 토큰 검사(`check-design-tokens.mjs`)도 함께 돌지만 **조언 모드라 차단하지 않는다**(옵트인 시 차단) — 아래 '디자인 검증' 참조.
 - 팀 원격 저장소가 아직 없으면 로컬 커밋까지만 하고, 원격 연결은 사용자 확인 후 진행한다.
 - **개발 핸드오프(개발 레포 생성 후):** 개발 레포 `docs/`에 **기능명세서(fnspec/)·PRD(prd/)·UI 산출물(ui/)만 사본으로 복사**한다. 프로젝트 폴더 전체 복사 금지 — sow/(계약)·ref/(고객사 원자료)·_archive/는 개발 레포에 넣지 않는다. 원본은 항상 기획 프로젝트 저장소이며, "코드와 사본이 다르면 문서가 기준"이라는 중재 규칙을 개발팀과 합의한다. CR 발생 시 `변경 범위`에 개발 레포 사본 갱신을 반드시 포함한다.
 
@@ -283,6 +283,22 @@ python3 .claude/scripts/consistency_check.py --strict --report
 - **기계 판정 항목**(위 스크립트): FS 우선순위 상속, FS↔REQ 단계 일치, MUST FS의 WBS 배치, 화면별 산출물(와이어프레임·본 HTML) 존재, 화면 HTML 상호 링크(명세·주석도해), 폐기 REQ의 활성 참조, FS ID 중복 선언, 초안 한정 마커(`[추정치]`·`[출처 필요]`)의 확정본 잔존
 - `--strict`: ❌ 오류 시 종료코드 2 / `--report`: `prd/_consistency_report.md` 저장
 - **의미 대조**(문장 충돌 — 기계 판정 불가): Read `.claude/skills/15_consistency_check.md` 후 그 프로토콜을 따른다 — 검증 영역별 병렬 에이전트 검사(영역 목록 정본은 스킬 15) → 발견을 [결정]/[기계적]/[상류 CR]로 분류 → [결정]은 건별 `AskUserQuestion`, 판정 기준은 문서 서열
+
+### 디자인 검증 (Phase 3 화면 HTML 생성 시)
+
+화면 HTML의 시각 규칙 정본은 AX팀 디자인 시스템에서 vendoring한 `.claude/design-system/` 4종이다. **값·RULE을 이 레포에서 고치지 않는다** — 정본 소유자(dana) 문의 → 정본 수정 → 재동기화 순서.
+
+| 문서 | 역할 |
+|---|---|
+| `design-system.md` | 토큰 값 SSOT (색·타이포·radius·shadow·spacing) |
+| `component-variants.md` | shadcn variant·utility 클래스 어휘 SSOT |
+| `design-playbook.md` | 레이아웃·인터랙션·접근성 기준선. 0~9 섹션 수정 금지, 이 레포 편차는 "10. 프로젝트별 슬롯" |
+| `layout-types/01-workspace.md` | 화면 유형별 레시피 |
+
+- **정적 게이트:** `node .claude/scripts/check-design-tokens.mjs --root=<프로젝트 저장소> --scope=ui/screens` — 하드코딩 색·primitive 팔레트·raw 타이포·임의값 검출. 전체 목록은 `--report`.
+- **커밋 게이트 ④:** 프로젝트 저장소 커밋 시 자동 실행. **기본은 조언 모드(차단 없음)** — 도입 시점 baseline이 ERROR 수천 건이라 차단하면 기존 프로젝트 커밋이 전부 막힌다. 저장소 루트에 `.design-gate-strict`를 두거나 `DESIGN_GATE=strict`로 커밋하면 차단 모드.
+- **리뷰 게이트:** `/design-review` — 3대 기준 문서 대조 PASS/WARN/FAIL 리포트(read-only, 서브에이전트 위임). 개발 핸드오프 전 권장.
+- vendoring 출처·로컬 패치 내역은 `design-playbook.md` 상단 stamp와 `check-design-tokens.mjs` 상단 주석에 있다. **정본 재동기화 시 패치 재적용 필요.**
 
 ## 스킬 유지보수 (.claude → .codex 동기화)
 
