@@ -75,7 +75,7 @@ python3 .claude/scripts/validate_traceability.py --strict
 
 ## 산출물 포맷
 
-PRD `## 테스트 케이스 초안 (TC-###)` 섹션에 아래 형식으로 작성한다.
+PRD `## 테스트 케이스 (TC-###)` 섹션에 아래 형식으로 작성한다. PRD가 분할된 프로젝트는 `prd/PRD_검증.md`에 엣지케이스와 함께 둔다(스킬 05 `PRD 파일 구성`) — `prd/` 폴더 안에 있어야 MUST REQ의 TC 커버리지가 계산된다.
 
 ```markdown
 ### TC-001 (REQ-001, REQ-004)
