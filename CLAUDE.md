@@ -126,6 +126,7 @@ PRD가 확정되면 **어떤 스킬도 실행하기 전에** `AskUserQuestion`�
 
 UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 
+0. Read .claude/skills/16_ux_principles.md — **Phase 2·3 내내 켜 두는 UX 렌즈 5종(유용성·가시성·효율성·참여도·접근성)의 정본.** 사이클당 1회 읽고, 이후 07~11의 체크리스트가 이 문서를 참조한다. 렌즈로 발견한 개선은 **REQ 근거가 없으면 문서에 임의 반영하지 않고** 미결(❓)·`AskUserQuestion`·CR로 보낸다
 1. Read .claude/skills/07_information_architecture.md
   → docs/[프로젝트명]/ui/01_information_architecture.md 작성
    → 사용자 확인 후 다음 단계
@@ -150,6 +151,7 @@ UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 3. Read docs/[프로젝트명]/ui/03_screen_spec.md
 4. Read docs/[프로젝트명]/ui/04_design_direction.md
 5. Read .claude/skills/11_ui_generation.md
+6. Read .claude/skills/16_ux_principles.md (Phase 2에서 이미 읽었으면 생략 가능)
 
 **화면당 생성 순서 (반드시 준수):**
 
@@ -257,6 +259,7 @@ UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 3. NFR(성능/가용성/보안/접근성/운영지표) 1개 이상 정의
 4. 사용자 승인(맞아요) + 변경 근거 기록(초안 v0.x는 git 커밋으로, v1.0 확정 이후는 `prd/CHANGELOG.md`의 변경 기록 CR-###으로)
 5. **가정·미결마다 검증 방법**(누구에게 무엇을 물으면 참·거짓이 갈리는가)이 적혔고, 초안 한정 마커(`[추정치]`·`[출처 필요]`)가 확정 전에 해소되었는가
+6. (Phase 2·3 한정) **UX 렌즈 5종**(유용성·가시성·효율성·참여도·접근성)으로 점검했고, 판정을 **세어서**(단계 수·입력 수) 적었으며, 렌즈로 발견한 개선 중 **REQ 근거 없는 것을 임의 반영하지 않고** 미결·CR로 보냈는가 (스킬 16 — 접근성 수치 정본은 `design-playbook.md`)
 
 ### 자동 추적성 검증 (필수)
 
