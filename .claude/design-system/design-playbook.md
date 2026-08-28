@@ -1,7 +1,9 @@
 # Design Playbook
 
-> ⤳ vendored from ax-design-system (git@github.wrtn.club:wrtn-tech/ax-design-system.git, branch `develop`) @ f430de0 · 0~9 섹션 수정 금지 · 정본 변경 시 재동기화
-> 이 레포에서의 보관 위치는 `docs/` 가 아니라 `.claude/design-system/` 이다 — 이 레포의 `docs/` 는 고객 산출물 유출 방지를 위해 통째로 git 추적 제외이기 때문. 사유는 "10. 프로젝트별 슬롯" 참조.
+> ⤳ vendored from ax-design-system @ 9a6e7c5 · doc-sha 70c6a6c2e41e · 0~9 섹션 수정 금지 · 정본 변경 시 재동기화
+> 원격은 `git@github.wrtn.club:wrtn-tech/ax-design-system.git` 브랜치 `develop`. 이 레포에서의 보관 위치는 `docs/` 가 아니라 `.claude/design-system/` 이다 — 이 레포의 `docs/` 는 고객 산출물 유출 방지를 위해 통째로 git 추적 제외이기 때문. 사유는 `design-playbook.md` "10. 프로젝트별 슬롯" 참조.
+
+> ⤳ vendor: required — 공통 기준선이라 유형과 무관하게 모든 소비 레포가 가져간다. 0~9 섹션 수정 금지 · 프로젝트 편차는 "10. 프로젝트별 슬롯" 에만.
 
 **대상:** Claude (PoC 제작 시 컨텍스트로 주입)
 **역할:** ax-design-system 기반 PoC들이 공통으로 따르는 **레이아웃·구성·인터랙션 기준선**. `design-system.md`(토큰 값)와 짝을 이루는 "그 토큰을 화면에 어떻게 적용하나" 문서.
@@ -9,7 +11,7 @@
 **버전:** v0.5-draft · 2026-05-29
 **적용법:** 이 파일을 PoC 레포 루트(또는 docs)에 두고 `CLAUDE.md`에서 `@design-playbook.md`로 참조. 프로젝트 고유 사항은 "10. 프로젝트별 슬롯"에 덧붙인다.
 
-> ⚠️ **검토요망 표시**: 수치 옆 `[제안]`은 기존 PoC들의 drift(사이드바 288 vs 400 등)를 표준 기준으로 모은 값. dana 승인/수정 대상.
+> ⚠️ **잠정 표시**: 수치 옆 `[제안]`은 기존 PoC들의 drift(사이드바 288 vs 400 등)를 표준 기준으로 모은 값. **그대로 써도 되며 승인을 기다릴 필요는 없다.** 반례가 나오면 사유와 함께 PR 로 갱신한다.
 
 
 ---
@@ -17,7 +19,7 @@
 ## 0. 강제력 어휘 + craft 철학
 
 - **RULE** — 반드시. 어기면 안 됨. (접근성·인터랙션·토큰 이탈 금지처럼 "어디서나 참")
-- **PREFER** — 권장 기본값. 디자이너(dana)가 비주얼 단위로 보정 가능.
+- **PREFER** — 권장 기본값. 화면 단위로 보정 가능하며, 보정했으면 사유를 PR 에 남긴다.
 - **AVOID** — 하지 말 것.
 
 > 이 문서는 **구조·인터랙션·토큰 사용은 RULE, 치수·비주얼 기본값은 PREFER**다. "동작하는 방식"은 고정, "보이는 값"은 열어둔다.
@@ -34,7 +36,10 @@
 - **RULE** Tailwind 기본 팔레트(`bg-zinc-900`, `text-slate-500` 등) 금지.
 - **RULE** shadcn alias 클래스(`bg-primary`, `text-primary-foreground`, `bg-card`, `bg-muted`, `bg-secondary`, `bg-accent`, `bg-destructive`, `text-foreground`, `text-muted-foreground`, `border-border`, `ring-ring` 등)도 컴포넌트/화면 코드에 쓰지 않는다. v5 canonical semantic 만 사용 — 예: `bg-primary-main`, `text-text-black`, `bg-surface-elevated`, `text-text-primary`, `border-outline-default`, `ring-primary-main`. **Why:** shadcn alias 는 alias 층에서만 존재 의미가 있고 실제 컴포넌트 이름은 Figma canonical 과 일치해야 개발자·디자이너가 같은 어휘로 소통 가능.
 - **RULE** `bg-background-*` 은 **페이지 캔버스 배경 전용**이다. 카드/탭/dialog/panel 같은 body 위 표면에는 `bg-surface-{elevated|secondary|tertiary|sunken|disabled}` 를 쓴다. `ring-offset-background-primary` (링 컷아웃) 만 예외.
-- **RULE** 필요한 semantic 이 없어 보이면 primitive 로 때우지 말고 먼저 dana 에게 문의해 `design-system.md` 에 semantic 을 추가한 뒤 사용한다.
+- **RULE** 필요한 semantic 이 없어 보이면 primitive 를 그대로 꺼내 쓰지 않는다. 먼저 가장 가까운 기존 semantic 으로 대체하고, 그래도 없으면 정본 레포의 `docs/proposals/` 에 신규 semantic 제안을 남긴 뒤 사용처에 `ds-allow` 주석으로 제안 경로를 걸어 진행한다. 승인을 기다리며 멈추지 않되, 근거 없는 primitive 사용은 남기지 않는다.
+
+  > 📌 **제안은 정본 레포에서만 관리한다.** `docs/proposals/` 는 vendoring 대상이 아니므로 이 문서를 가져간 레포에는 그 폴더가 **없다.** 소비 레포에서는 **정본 레포에 PR 로 제안**하고, 로컬 코드의 `ds-allow` 주석에는 그 PR/이슈 링크를 근거로 건다. 로컬에 `docs/proposals/` 를 새로 만들지 않는다 — 제안이 정본에 도달하지 않으면 다음 재동기화에서 그대로 되돌아온다.
+  > 정본 레포: https://github.wrtn.club/wrtn-tech/ax-design-system
 - **RULE `primary/*` 과 `accent/*` 사용 자리 구분 — 라이트 모드 눈 피로 대응.** 라이트 모드에서 `text-primary-main` (mint-500) 을 텍스트·아이콘 강조에 그대로 쓰면 채도가 높아 눈이 피로해진다. `accent-solid` 토큰(라이트: mint-700 진한 mint · 다크: mint-300 연한 mint · **라이트/다크 자동 양방향 대응**) 을 대신 쓴다.
 
   | 용도 | 사용 토큰 |
@@ -47,10 +52,10 @@
   | **hover 시 강조** (`hover:text-*`) | **`hover:text-accent-solid`** |
   | **outline 배지 안 mint 텍스트** (PK/FK 배지·활성 배지) | **`text-accent-solid`** |
 
-  **한 문장 요약:** 배경 자체가 `primary-main` 이면 내용은 `text-text-black`. 배경이 흰색 · `surface-*` · `primary-light` 이면 위 텍스트·아이콘은 **`text-accent-solid`**. **검증 러닝 (2026-07-30):** 세라젬 hero "데이터로 모읍니다" 강조 텍스트 `text-primary-main` → dana 라이트 눈 피로 지적 → `text-accent-solid` 로 마이그레이션 → 라이트/다크 모두 자연스러워짐. 4개 워크스페이스 PoC 전체 일괄 치환.
+  **한 문장 요약:** 배경 자체가 `primary-main` 이면 내용은 `text-text-black`. 배경이 흰색 · `surface-*` · `primary-light` 이면 위 텍스트·아이콘은 **`text-accent-solid`**. **검증 러닝 (2026-07-30):** 세라젬 hero "데이터로 모읍니다" 강조 텍스트 `text-primary-main` → 디자인 리뷰에서 라이트 눈 피로 지적 → `text-accent-solid` 로 마이그레이션 → 라이트/다크 모두 자연스러워짐. 4개 워크스페이스 PoC 전체 일괄 치환.
 - **RULE** 타이포는 템플릿 27 토큰(`text-header-40` ~ `text-plain-12`) 또는 `typography.{key}` helper만. 생짜 `text-sm`/`text-lg`/`text-xl` 금지, 커스텀 타입스케일 재발명 금지.
 - **RULE** radius/shadow/spacing도 템플릿 토큰만. 임의값 `rounded-[14px]`·`p-[13px]` 금지.
-- **RULE** 필요한 토큰이 없으면 임의값으로 때우지 말고 `design-system.md`에 먼저 추가 (이 결정은 dana에게 문의).
+- **RULE** 필요한 토큰이 없으면 임의값을 화면에 직접 박지 않는다. 가장 가까운 토큰으로 맞추고, 대체가 없으면 정본 레포의 `docs/proposals/` 에 제안을 남긴 뒤 `ds-allow` 주석으로 제안 경로를 걸어 진행한다.
 - **RULE** 인라인 `style={{}}`에 값 직접 박기 금지 — `var(--foreground)` 토큰 변수 참조 또는 className.
 
 ### 1.2 간격 (템플릿 spacing 토큰)
@@ -98,7 +103,7 @@
 - **RULE** 아이콘만 있는 버튼 → `aria-label`. 장식 아이콘 → `aria-hidden`.
 - **RULE** 색만으로 정보 전달 금지 (상태는 아이콘+텍스트 병행).
 - **RULE** `<div onClick>` 쓸 거면 `role`+`tabIndex`+Enter/Space 핸들러 필수. (가능하면 `<button>`)
-- **RULE 원형 아이콘 버튼은 정방향(가로=세로)을 강제한다.** `rounded-full` 만으로는 flex 컨테이너에서 세로로 늘어날 수 있음. **반드시 `size-{n} shrink-0` 로 명시적 정사각형 크기 잠금.** 예: `size='icon' className='size-9 shrink-0 rounded-full'`. **Why:** 세일즈 어시스턴트·다날 composer 송신 버튼이 세로로 늘어져 dana 지적 (2026-07-30). 원형 버튼의 정체성이 훼손되지 않으려면 정방향 강제 필요.
+- **RULE 원형 아이콘 버튼은 정방향(가로=세로)을 강제한다.** `rounded-full` 만으로는 flex 컨테이너에서 세로로 늘어날 수 있음. **반드시 `size-{n} shrink-0` 로 명시적 정사각형 크기 잠금.** 예: `size='icon' className='size-9 shrink-0 rounded-full'`. **Why:** 세일즈 어시스턴트·다날 composer 송신 버튼이 세로로 늘어져 디자인 리뷰에서 지적 (2026-07-30). 원형 버튼의 정체성이 훼손되지 않으려면 정방향 강제 필요.
 - **PREFER** 트랜지션 `transition-* duration-200` 기본(관행). 과한 모션 자제.
 - ✅ 모달이 열리면 첫 입력에 포커스 진입, ESC로 닫히고 트리거 버튼으로 포커스 복귀. 아이콘 버튼에 `aria-label="삭제"`.
 - ❌ `<div onClick>`로 만든 버튼이 Tab으로 도달 안 됨 / 모달에 ESC·포커스 트랩 없음 / 에러를 빨간 테두리 색으로만 표시.
@@ -216,7 +221,7 @@
 
 ### 4.1 랜딩 / 마케팅
 
-> ⏸ **재검토 예정 (dana, 2026-07-23)** — 이전 골격/anatomy 규칙은 랜딩 콘텐츠가 무엇을 전할지 모르는 상태에서 와이어프레임을 미리 못박아 평면적이고 메시지 전달력이 부족한 결과가 나옴. 랜딩 archetype 은 컨텐츠·톤·목적에 따라 자유롭게 구성되어야 하므로 별도 재검토 후 갱신.
+> ⏸ **재검토 예정 (2026-07-23 디자인 리뷰)** — 이전 골격/anatomy 규칙은 랜딩 콘텐츠가 무엇을 전할지 모르는 상태에서 와이어프레임을 미리 못박아 평면적이고 메시지 전달력이 부족한 결과가 나옴. 랜딩 archetype 은 컨텐츠·톤·목적에 따라 자유롭게 구성되어야 하므로 별도 재검토 후 갱신.
 
 ### 4.2 콘솔 / Admin
 **골격 (PREFER):** `[고정 사이드바 내비] + [상단 탑바(타이틀+우상단 주 액션)] + [콘텐츠(카드/테이블 그리드)]`
@@ -264,7 +269,7 @@
 
 ## 5. drift 해소 — 표준값 결정표 (검토요망)
 
-기존 PoC가 제각각이던 값을 하나로. **`[제안]`은 dana 승인 대상.**
+기존 PoC가 제각각이던 값을 하나로. **`[제안]`은 잠정 표준 — 승인을 기다리지 말고 그대로 쓰고, 반례가 나오면 사유와 함께 PR 로 갱신한다.**
 
 | 항목 | 기존 (제각각) | 제안 표준 |
 |---|---|---|
@@ -310,12 +315,12 @@
 
 ## 8. 이 문서가 다루지 않는 것 (Known Gaps)
 
-Claude는 아래를 **이 문서에서 찾지 말고**, 표시된 출처를 따르거나 dana에게 문의한다. **없는 패턴을 지어내지 말 것.**
+Claude는 아래를 **이 문서에서 찾지 말고** 표시된 출처를 따른다. 출처가 "미정"인 항목은 멈추지 말고 가장 가까운 기존 패턴을 참고해 진행하되, **무엇을 어떤 근거로 정했는지 PR 에 남긴다.** 없는 패턴을 지어내 놓고 규칙인 것처럼 쓰지 말 것.
 
 - **토큰 값**(색·타이포·spacing 수치) → `docs/design-system.md` (SSOT)
 - **shadcn variant·utility 클래스 어휘** → `docs/component-variants.md`
 - **서비스별 도메인 로직·플로우** → 각 PoC의 SPEC/PRD
-- **복합 위젯**(차트·지도·캘린더·리치 에디터 등)의 내부 디자인 → 미정. 필요 시 dana 문의
+- **복합 위젯**(차트·지도·캘린더·리치 에디터 등)의 내부 디자인 → 미정. 기존 PoC 구현(차트는 [chart-color-tokens.md](https://github.wrtn.club/wrtn-tech/ax-design-system/blob/develop/docs/proposals/chart-color-tokens.md))을 참고해 진행하고, 새로 정한 규칙은 정본 레포의 `docs/proposals/` 에 남긴다 (1.1절 📌 참조). 이 폴더는 vendoring 대상이 아니라 소비 레포에는 없으므로 웹 링크로 연다.
 - **모션 디테일**(duration/easing 체계) → 1.6절의 기본값 외 미정 (추후 후보)
 
 ---
@@ -333,8 +338,9 @@ Claude는 아래를 **이 문서에서 찾지 말고**, 표시된 출처를 따�
 ### 이 레포 정보 (service-planning-agent — 서비스 기획 워크플로우)
 
 - **성격:** 앱 레포가 아니라 **기획 산출물 생성 워크플로우 레포**다. 앱 소스(`src/`·React·TS)가 없고, 디자인 표면은 스킬 11 이 생성하는 **화면 HTML**(`docs/[프로젝트명]/ui/screens/*.html`)이다.
-- **라이트/다크:** 라이트 단일. 화면 41개 중 `dark:`·`prefers-color-scheme` 사용 0건 — 산출물이 고객 리뷰·PDF 출력을 전제로 하기 때문.
-- **주 사용 유형:** 콘솔 / 워크스페이스 (프로젝트마다 다름 — 화면 명세서 `03_screen_spec.md` 기준).
+- **라이트/다크:** 라이트 단일. 화면 37개 중 `dark:`·`prefers-color-scheme` 사용 0건 — 산출물이 고객 리뷰·PDF 출력을 전제로 하기 때문.
+- **주 사용 유형:** 워크스페이스(`layout-types/01-workspace.md`). 유형 판별은 `00-type-selection.md` 기준으로 프로젝트마다 다시 한다.
+- **보유 문서:** `required` 6종 전부 + `scoped` 중 `01-workspace.md`. `02-admin.md`(scoped)는 어드민 유형 화면에 착수할 때 받는다. `proposals/**`·`releases/**`(excluded)는 받지 않는다.
 
 ### 의도적 편차 (템플릿 대비)
 
@@ -343,25 +349,40 @@ Claude는 아래를 **이 문서에서 찾지 말고**, 표시된 출처를 따�
 | 거버넌스 문서 위치 | `docs/` | `.claude/design-system/` | 이 레포의 `docs/` 는 고객 산출물 유출 방지를 위해 통째로 git 추적 제외(.gitignore). `docs/` 에 두면 문서가 추적되지 않는다. |
 | 게이트 스크립트 위치 | `scripts/` | `.claude/scripts/` | 이 레포의 스크립트 규약(`validate_traceability.py` 등이 모두 여기). |
 | 토큰 전달 방식 | `globals.css` `@theme` + `tokens.ts` | 없음 (Tailwind CDN) | 화면 HTML 이 `cdn.tailwindcss.com` 을 직접 물고 빌드 단계가 없다. semantic 토큰 레이어가 존재하지 않아 현재 화면은 raw Tailwind 유틸리티를 쓴다. |
-| `check:design` 스캔 대상 | `src/**/*.{ts,tsx,css}` | `**/*.{ts,tsx,css,html}` | 위와 같은 이유. 로컬 패치 내역은 스크립트 상단 주석 참조. |
+| `check-design-tokens.mjs` 스캔 루트 | 스크립트 기준 `..` 고정 | `--root=<dir>` 로 받음 | 산출물이 이 레포가 아니라 **프로젝트별 독립 저장소**에 있다. 고정하면 스캔 0건 → 공허한 "이탈 없음". |
+| `check-ds-sync.mjs` 사본 경로 | `docs/**` | `design-system/**` → `docs/**` 정규화 | 위 문서 위치 편차의 귀결. 패치 없으면 전건이 "manifest 범위 밖" 으로 빠져 **한 건도 대조 않고 통과**한다. |
 | 게이트 강제력 | 차단(ERROR 시 exit 1) | **조언 모드 기본 + 옵트인 차단** | 도입 시점 baseline 이 ERROR 수천 건이라 차단으로 켜면 기존 프로젝트 커밋이 전부 막힌다(brownfield 무결성 RULE). `.design-gate-strict` 또는 `DESIGN_GATE=strict` 로 저장소별 옵트인. |
 
-### 도입 시점 baseline (2026-08-03, `--root=<레포>` 전체 스캔)
+> 로컬 패치의 **내용·근거**는 각 스크립트 상단 `[로컬 패치]` 주석이 정본이다. 재동기화 시 그 주석대로 재적용한다.
 
-전체 **ERROR 6,950건 · WARN 872건 · ds-allow 면제 0건**. 레이어별 대략 분포:
+### baseline (2026-08-27 재측정, 정본 `9a6e7c5` 게이트)
 
-| 레이어 | 비중 | 성격 |
+커밋 게이트 ④의 적용 범위인 **`ui/screens`** 기준 — 전체 **ERROR 3,865건 · WARN 874건 · ds-allow 면제 0건**.
+
+| 프로젝트 | 화면 | ERROR | WARN |
+|---|---|---|---|
+| `interview-digest` | 7 | 381 | 457 |
+| `kyobo_lifeplanet_ai_salesbot` | 14 | 1,349 | 268 |
+| `wrtnax-aicc-platform` | 16 | 2,135 | 149 |
+| `wremember` | 0 (Phase 3 미착수) | 0 | 0 |
+
+- **범위 밖 백로그:** `assets/wireframes/**`(76개, 저해상도 와이어프레임)를 포함한 전체 스캔은 ERROR 6,957건. 와이어프레임은 **의도적 그레이스케일**이라 토큰 대조 대상이 아니므로 마이그레이션 대상으로 잡지 않는다.
+- `ui/screens/index.html` 은 `generate_screen_index.py` 자동 생성물이라 vendored(WARN)로 강등한다. 위반은 생성기에서 고친다.
+- 기존 3개 프로젝트는 DS 도입 이전 산출물이라 ERROR 0 이 아니다. **신규 프로젝트부터** strict 옵트인으로 ERROR 0 을 유지한다.
+- 재측정 명령: `node .claude/scripts/check-design-tokens.mjs --root=docs/[프로젝트명] --scope=ui/screens`
+
+### 재동기화 이력
+
+| 시점 | 정본 커밋 | 결과 |
 |---|---|---|
-| `ui/screens/**` (본 HTML) | 약 3,941 | 실제 디자인 표면 — 마이그레이션 대상 |
-| `assets/wireframes/**` | 약 3,769 | 저해상도 와이어프레임. **의도적 그레이스케일**이라 토큰 대조 대상이 아님 |
-| `ui/screens/index.html` | 약 48 | `generate_screen_index.py` 자동 생성물 → vendored(WARN) 로 강등. 위반은 생성기에서 고친다 |
-
-- 커밋 게이트 ④의 적용 범위는 **`ui/screens` 로 한정**했다. 위 와이어프레임 수치는 범위 밖 백로그이며, 그레이스케일이 의도인 이상 토큰 마이그레이션 대상으로 잡지 않는다.
-- 기존 3개 프로젝트(`interview-digest`·`kyobo_lifeplanet_ai_salesbot`·`wrtnax-aicc-platform`)는 DS 도입 이전 산출물이라 ERROR 0 이 아니다. 신규 프로젝트부터 strict 옵트인으로 ERROR 0 을 유지한다.
+| 2026-08-03 | `f430de0` | 최초 vendoring (문서 4종) |
+| 2026-08-27 | `9a6e7c5` | 문서 7종으로 확대(`vendor:` 등급 계약 도입). **토큰 값 변경 0건** — 기존 화면 재작업 불필요. 게이트에 `check-ds-sync.mjs` 추가, `offscale-spacing` 규칙(WARN) 신설 |
 
 ### 미적용 항목 (이 레포에 해당 없음)
 
 `tokens.ts`·`typography.ts`·shadcn 컴포넌트 포팅·`package.json`·빌드/lint/런타임 게이트 — 앱 소스가 없어 적용 대상이 아니다. 이 레포에 앱 코드가 생기면 그때 정본 절차대로 도입한다.
+
+`check-adoption-contract.mjs`(정본 자체 점검용)·`/sync-figma`·`/apply-tokens` 는 정본 전용이라 받지 않는다.
 
 ---
 

@@ -122,7 +122,7 @@ PRD가 확정되면 **어떤 스킬도 실행하기 전에** `AskUserQuestion`�
 
 ### Phase 2: UI 문서 작성 (PRD 완료 후 진행)
 
-**시작 전:** Read docs/[프로젝트명]/prd/ 폴더의 PRD 문서를 먼저 읽고 시작할 것
+**시작 전:** Read docs/[프로젝트명]/prd/ 의 **PRD 세트 전 파일**(분할 시 `PRD.md` · `PRD_기능상세.md` · `PRD_검증.md`)을 먼저 읽고 시작할 것 — **화면 상태·문구의 원천이 `PRD_기능상세.md`의 「예외 처리」와 `PRD_검증.md`의 `EC-##`**이므로 세 파일이 모두 입력이다(스킬 09 출처 칸)
 
 UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 
@@ -243,7 +243,7 @@ UI를 생성하기 전 반드시 이 순서로 문서를 작성할 것:
 - 질문 없이 바로 문서 작성 금지
 - PRD 없이 UI 문서 작성 금지
 - UI 문서 없이 UI 생성 금지
-- 기술 구현 방법 언급 금지 (기획 문서에서)
+- 기술 구현 방법 언급 금지 (기획 문서에서) — 판정 질문은 **"이게 틀리면 사용자·운영자가 겪는 것이 달라지는가"**. 개발이 정한 것은 개발 문서에 두고, 기획서는 **사용자가 보는 것·약속할 수 있는 것·못 지키게 된 것**이 바뀔 때만 받는다(스킬 05 `구현 경계`)
 - 추상적 표현 금지 ("편리한", "빠른", "쉬운" → 구체적 수치나 조건으로 대체)
 - 출처 없는 정량 주장·인용·고유명사 단정 금지 (마커를 달아 쓰거나, 쓰지 않는다)
 - 사용자가 정하지 않은 범위·대상·조건·수치의 임의 구체화 금지 (빈칸으로 두고 되묻는다)
@@ -289,19 +289,25 @@ python3 .claude/scripts/consistency_check.py --strict --report
 
 ### 디자인 검증 (Phase 3 화면 HTML 생성 시)
 
-화면 HTML의 시각 규칙 정본은 AX팀 디자인 시스템에서 vendoring한 `.claude/design-system/` 4종이다. **값·RULE을 이 레포에서 고치지 않는다** — 정본 소유자(dana) 문의 → 정본 수정 → 재동기화 순서.
+화면 HTML의 시각 규칙 정본은 AX팀 디자인 시스템에서 vendoring한 `.claude/design-system/` 7종이다. **값·RULE을 이 레포에서 고치지 않는다** — 정본 소유자(dana) 문의 → 정본 수정 → 재동기화 순서.
+
+무엇을 가져올지는 폴더가 아니라 **각 문서 상단의 `> ⤳ vendor: required | scoped | excluded` 등급**이 정한다(`required` 전부 + 우리가 만드는 유형의 `scoped`).
 
 | 문서 | 역할 |
 |---|---|
 | `design-system.md` | 토큰 값 SSOT (색·타이포·radius·shadow·spacing) |
 | `component-variants.md` | shadcn variant·utility 클래스 어휘 SSOT |
 | `design-playbook.md` | 레이아웃·인터랙션·접근성 기준선. 0~9 섹션 수정 금지, 이 레포 편차는 "10. 프로젝트별 슬롯" |
-| `layout-types/01-workspace.md` | 화면 유형별 레시피 |
+| `getting-started.md` | 진입 문서 — 게이트 실행 순서, "토큰은 상속하는 것이지 새로 만드는 게 아니다" |
+| `workflow.md` | 적용 우선순위 3계층 (토큰 → DS 컴포넌트 → 바닐라 shadcn) |
+| `layout-types/00-type-selection.md` | **화면 유형 판별의 출발점** — 화면을 그리기 전 여기서 유형을 정한다 |
+| `layout-types/01-workspace.md` | 워크스페이스 유형 레시피 (`scoped`). 어드민 화면에 착수하면 `02-admin.md`를 추가로 받는다 |
 
 - **정적 게이트:** `node .claude/scripts/check-design-tokens.mjs --root=<프로젝트 저장소> --scope=ui/screens` — 하드코딩 색·primitive 팔레트·raw 타이포·임의값 검출. 전체 목록은 `--report`.
 - **커밋 게이트 ④:** 프로젝트 저장소 커밋 시 자동 실행. **기본은 조언 모드(차단 없음)** — 도입 시점 baseline이 ERROR 수천 건이라 차단하면 기존 프로젝트 커밋이 전부 막힌다. 저장소 루트에 `.design-gate-strict`를 두거나 `DESIGN_GATE=strict`로 커밋하면 차단 모드.
 - **리뷰 게이트:** `/design-review` — 3대 기준 문서 대조 PASS/WARN/FAIL 리포트(read-only, 서브에이전트 위임). 개발 핸드오프 전 권장.
-- vendoring 출처·로컬 패치 내역은 `design-playbook.md` 상단 stamp와 `check-design-tokens.mjs` 상단 주석에 있다. **정본 재동기화 시 패치 재적용 필요.**
+- **동기화 게이트:** `node .claude/scripts/check-ds-sync.mjs --manifest <정본 /llms/manifest.json 주소>` — 사본이 낡았는지 판정한다. 판정 기준은 각 문서 stamp의 `doc-sha`이며, **사본을 다시 해싱해 비교하지 않는다**(사본에는 stamp와 슬롯 10이 붙어 정본과 반드시 달라진다). CI에 걸지 않고 드리프트가 의심될 때 수동 실행한다.
+- vendoring 출처·로컬 패치 내역은 각 문서 상단 stamp와 두 게이트 스크립트 상단 `[로컬 패치]` 주석, 재동기화 이력은 `design-playbook.md` "10. 프로젝트별 슬롯"에 있다. **정본 재동기화 시 패치 재적용 필요.**
 
 ## 스킬 유지보수 (.claude → .codex 동기화)
 

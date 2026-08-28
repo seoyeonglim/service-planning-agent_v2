@@ -37,14 +37,16 @@
 
 // ─────────────────────────────────────────────────────────────────────────
 // [로컬 패치 — service-planning-agent 워크플로우 레포]
-//   정본(ax-design-system @ f430de0)은 `<레포>/src/**/*.{ts,tsx,css}` 를 고정
-//   스캔한다. 이 레포에는 앱 소스가 없고 디자인 표면이 기획 산출물인 화면
-//   HTML(`ui/screens/*.html`, Tailwind 클래스 사용)이라, 정본 그대로 두면
-//   스캔 대상 0건 → 공허한 "이탈 없음" 이 되어 게이트로서 거짓말을 한다.
-//   그래서 아래 3가지만 로컬 패치했다 (탐지 규칙·심각도·RULE 수치는 무수정):
+//   이 레포에는 앱 소스가 없다. 디자인 표면은 기획 산출물인 화면
+//   HTML(`docs/[프로젝트명]/ui/screens/*.html`, Tailwind 클래스 사용)이고,
+//   그 산출물은 이 레포가 아니라 **프로젝트별 독립 저장소**에 있다.
+//   정본은 스크립트 위치 기준 `..` 를 스캔 루트로 고정하므로, 그대로 두면
+//   스캔 대상 0건 → 공허한 "이탈 없음" 이 되어 게이트가 거짓말을 한다.
+//   그래서 아래 2가지만 로컬 패치했다 (탐지 규칙·심각도·RULE 수치는 무수정):
 //     ① `--root=<dir>` 로 스캔 루트를 받는다 (기본: 이 스크립트 기준 레포 루트)
-//     ② 스캔 확장자에 `.html` 추가
-//     ③ 자동 생성물 `ui/screens/index.html` 은 vendored(WARN) 로 강등
+//     ② 자동 생성물 `ui/screens/index.html` 은 vendored(WARN) 로 강등
+//   ※ 구 사본의 패치 ②(스캔 확장자에 `.html` 추가)는 정본 9a6e7c5 가 흡수해
+//      제거했다 — 정본이 `.html` 을 프로젝트 전체에서 스캔한다.
 //   ⚠️ 정본 재동기화 시 이 패치를 재적용해야 한다.
 // ─────────────────────────────────────────────────────────────────────────
 
@@ -53,33 +55,35 @@ import { join, relative, dirname, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const here = dirname(fileURLToPath(import.meta.url));
+// [로컬 패치 ①] 기본은 정본과 동일(스크립트 기준 `..`), `--root=` 로 덮어쓴다.
+const rootFlag = process.argv.slice(2).find((a) => a.startsWith('--root='));
+const projectRoot = rootFlag ? resolve(rootFlag.slice(7)) : join(here, '..');
+
+// ── HTML 프로토타입 ───────────────────────────────────────────────────────
+//   FE 적용 전에 `.html` 로 먼저 만드는 워크플로우가 있고, 그 단계에서 골격과
+//   색이 이미 굳는다. `src` 밖(`prototypes/`, `mockups/`, 루트 등)에 두는 경우가
+//   많아 스캔 루트를 `src` 로 고정하면 통째로 빠져나간다 — 실제로 다운스트림에서
+//   "게이트 통과" 로 보이는 미검사 상태가 발생했다 (2026-08-03).
+//   `.ts/.tsx/.css` 의 스캔 범위는 그대로 두고, `.html` 만 프로젝트 전체에서 찾는다.
+const CODE_EXT = ['.ts', '.tsx', '.css'];
+const HTML_EXT = ['.html', '.htm'];
+const IGNORED_DIRS = new Set([
+  'node_modules',
+  '.git',
+  '.next',
+  '.turbo',
+  '.vercel',
+  'dist',
+  'build',
+  'out',
+  'coverage',
+  'storybook-static',
+]);
 
 const argv = process.argv.slice(2);
 const args = new Set(argv);
 const REPORT = args.has('--report');
 const STRICT = args.has('--strict');
-
-// [로컬 패치 ①] 스캔 루트 — `.claude/scripts/` 에 두므로 기본값은 두 단계 위(레포 루트)
-const ROOT_ARG = argv.find((a) => a.startsWith('--root='))?.slice(7);
-const projectRoot = ROOT_ARG
-  ? resolve(process.cwd(), ROOT_ARG)
-  : join(here, '..', '..');
-const scanRoot = projectRoot;
-
-// [로컬 패치 ②] 스캔 확장자 + 순회 제외 디렉토리
-const SCAN_EXT = ['.ts', '.tsx', '.css', '.html'];
-const IGNORE_DIRS = new Set([
-  'node_modules',
-  '.git',
-  '.next',
-  'dist',
-  'build',
-  '_archive',
-  'test-results',
-  '__pycache__',
-  '.venv',
-  'venv',
-]);
 
 // ── 적용 범위 (--scope=a,b) ───────────────────────────────────────────────
 //   brownfield 는 한 번에 전 화면을 옮기지 못한다. 범위를 한정해 "그 안에서는
@@ -105,11 +109,12 @@ function isTokenDef(rel) {
 //   - shadcn 프리미티브: src/components/ui/**
 //   - 최상위 시각 컴포넌트(react-bits 류): src/components/*.tsx (common/ 제외)
 function isVendored(rel) {
+  // [로컬 패치 ②] 화면 인덱스는 generate_screen_index.py 자동 생성물이라
+  //   사람이 고치지 않는다(스킬 11). ERROR 로 두면 손댈 수 없는 건으로 쌓인다.
+  if (rel.endsWith('ui/screens/index.html')) return true;
   if (rel.startsWith('src/components/ui/')) return true;
   // src/components/Xxx.tsx (한 단계 깊이, common/ui 하위가 아닌 느슨한 컴포넌트)
   if (/^src\/components\/[^/]+\.tsx$/.test(rel)) return true;
-  // [로컬 패치 ③] generate_screen_index.py 자동 생성물 — 위반은 생성기에서 고친다
-  if (/(^|\/)ui\/screens\/index\.html$/.test(rel)) return true;
   return false;
 }
 
@@ -178,6 +183,35 @@ const PRIMITIVE_DIRECT_RE = new RegExp(
   'g',
 );
 
+// 7) spacing 토큰 스케일 밖 Tailwind 기본 유틸 (gap-2.5=10px 등) — 대괄호 없이도
+//    토큰 밖 간격이 생기는 게이트 사각지대 (2026-08-04 greenfield 어드민 검증 F6).
+//    허용 스케일: design-system.md 6번 섹션 (2/4/6/8/12/16/24/32/48/64px = tailwind
+//    0.5/1/1.5/2/3/4/6/8/12/16) + 0 + px(1px 헤어라인) + 5(=20px — 02-admin.md 2.1
+//    카드 p-5 기본 — docs/proposals/spacing-scale-5.md 로 추적. 제안 문서는 정본 레포에만 있다:
+//    https://github.wrtn.club/wrtn-tech/ax-design-system/blob/develop/docs/proposals/spacing-scale-5.md).
+//    위치 지정(left/top/inset)은 간격이 아니므로 대상 밖.
+const SPACING_UTILS =
+  '(?:px|py|ps|pe|pt|pb|pl|pr|p|mx|my|ms|me|mt|mb|ml|mr|m|gap-x|gap-y|gap|space-x|space-y)';
+const SPACING_SCALE_ALLOW = new Set([
+  '0',
+  '0.5',
+  '1',
+  '1.5',
+  '2',
+  '3',
+  '4',
+  '5',
+  '6',
+  '8',
+  '12',
+  '16',
+  'px',
+]);
+const OFFSCALE_SPACING_RE = new RegExp(
+  `(?<![\\w-])-?${SPACING_UTILS}-(\\d+(?:\\.\\d+)?|px)(?![\\w.\\-\\[\\]])`,
+  'g',
+);
+
 const RULES = {
   'hardcoded-color': '하드코딩 색 리터럴 (hex/rgb/hsl) — 시맨틱 토큰 사용',
   'primitive-palette':
@@ -190,6 +224,8 @@ const RULES = {
     'shadcn alias 클래스 — v5 canonical semantic 사용 (playbook 1.1, 마이그레이션 백로그)',
   'primitive-direct':
     'DS primitive 직접 사용 — semantic 토큰 사용 (playbook 1.1, 마이그레이션 백로그)',
+  'offscale-spacing':
+    'spacing 토큰 스케일 밖 값 (gap-2.5 등) — design-system.md 6번 섹션 스케일만 (잔여 정리 후 ERROR 승격)',
 };
 
 const findings = [];
@@ -249,6 +285,13 @@ function scanLine(rel, vendored, lineNo, line, prevLine) {
   while ((m = PRIMITIVE_DIRECT_RE.exec(line)))
     add('primitive-direct', 'WARN', m.index + 1);
 
+  // 스케일 밖 spacing — 레이어 무관 WARN (잔여 사용 정리 후 ERROR 승격)
+  OFFSCALE_SPACING_RE.lastIndex = 0;
+  while ((m = OFFSCALE_SPACING_RE.exec(line))) {
+    if (!SPACING_SCALE_ALLOW.has(m[1]))
+      add('offscale-spacing', 'WARN', m.index + 1);
+  }
+
   ARBITRARY_RE.lastIndex = 0;
   while ((m = ARBITRARY_RE.exec(line))) {
     const content = m[1].trim();
@@ -260,20 +303,27 @@ function scanLine(rel, vendored, lineNo, line, prevLine) {
   }
 }
 
+let htmlScanned = 0;
+
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
   for (const e of entries) {
     const full = join(dir, e.name);
     if (e.isDirectory()) {
-      if (IGNORE_DIRS.has(e.name) || e.name.startsWith('.')) continue;
+      if (e.name.startsWith('.') || IGNORED_DIRS.has(e.name)) continue;
       await walk(full);
       continue;
     }
-    const ext = extname(e.name);
-    if (!SCAN_EXT.includes(ext)) continue;
-    if (/\.(test|spec)\.(ts|tsx)$/.test(e.name)) continue;
+    const ext = extname(e.name).toLowerCase();
     const rel = relative(projectRoot, full).split('\\').join('/');
+    const isHtml = HTML_EXT.includes(ext);
+    // `.ts/.tsx/.css` 는 종전대로 src 안에서만 본다(기존 동작 보존).
+    // `.html` 은 프로젝트 어디에 두든 본다 — 프로토타입이 src 밖에 사는 게 흔하다.
+    const isCode = CODE_EXT.includes(ext) && rel.startsWith('src/');
+    if (!isHtml && !isCode) continue;
+    if (/\.(test|spec)\.(ts|tsx)$/.test(e.name)) continue;
     if (isTokenDef(rel)) continue;
+    if (isHtml) htmlScanned++;
     const vendored = isVendored(rel);
     const content = await readFile(full, 'utf8');
     const fileLines = content.split('\n');
@@ -283,7 +333,8 @@ async function walk(dir) {
   }
 }
 
-await walk(scanRoot);
+// projectRoot 부터 걷되, 위 필터가 `.ts/.tsx/.css` 를 src 로 한정한다.
+await walk(projectRoot);
 
 // ── 집계 ──────────────────────────────────────────────────────────────────
 const allErrors = findings.filter((f) => f.severity === 'ERROR');
@@ -307,9 +358,13 @@ function fmtList(list) {
 const lines = [];
 lines.push('디자인 토큰 이탈 검사 (절대값 금지 / 토큰만 사용)');
 lines.push('='.repeat(60));
-lines.push(`스캔 루트: ${projectRoot}`);
 lines.push(
-  `스캔 대상: **/*.{ts,tsx,css,html}  (토큰 정의 파일·자동 생성물 제외)`,
+  `스캔: src/**/*.{ts,tsx,css} + **/*.{html,htm}  (토큰 정의 파일 제외)`,
+);
+lines.push(
+  htmlScanned
+    ? `HTML 프로토타입 ${htmlScanned}건 포함`
+    : `HTML 프로토타입 0건 (해당 없음)`,
 );
 if (SCOPE.length) {
   lines.push(`적용 범위: ${SCOPE.join(', ')}  (범위 밖 이탈은 백로그로 집계)`);

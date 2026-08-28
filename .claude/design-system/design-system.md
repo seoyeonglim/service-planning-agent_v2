@@ -1,5 +1,10 @@
 # Wrtn AX Design System — Figma SSOT
 
+> ⤳ vendored from ax-design-system @ 9a6e7c5 · doc-sha 08ed772cef42 · 정본 변경 시 재동기화
+> 원격은 `git@github.wrtn.club:wrtn-tech/ax-design-system.git` 브랜치 `develop`. 이 레포에서의 보관 위치는 `docs/` 가 아니라 `.claude/design-system/` 이다 — 이 레포의 `docs/` 는 고객 산출물 유출 방지를 위해 통째로 git 추적 제외이기 때문. 사유는 `design-playbook.md` "10. 프로젝트별 슬롯" 참조.
+
+> ⤳ vendor: required — 토큰 값 SSOT 라 모든 소비 레포가 가져간다.
+
 > 이 문서는 `/sync-figma` 커맨드로 Figma BX 스키마를 그대로 박제한 산출물이다.
 > 직접 편집하지 말 것. Figma에서 변경 후 `/sync-figma`를 다시 실행한다.
 > 코드 어휘(shadcn)로의 매핑은 `/apply-tokens`가 담당한다 — 이 문서가 어휘 번역의 책임을 지지 않는다.
@@ -295,7 +300,7 @@
 
 Figma 파일 이동: `F9DCw53UeJLEz1HPtuZSb1/141:51` (v4) → `hopt0qZUlSeBDJPebenZjy/2007:2` (v5). **이번 sync 는 컬러 섹션(1·2절)에만 적용**하고 typography/radius/shadow/spacing 은 v4 값을 그대로 유지했다.
 
-**v5 리팩터 근거** — v4 semantic 이 다크모드에서 커버리지 부족해 dana 가 실제 랜딩 작업 중 primitive 를 직접 꺼내 써야 했다. v5 는 dark stop 확장 + sunken/outline 3단 + icon 패밀리 + alpha 신설로 그 갭을 메웠고, 실증 실험(Figma `2084-1006` 라이트 / `2084-235` 다크) 에서 semantic 만으로 두 모드 모두 정상 표현 확인. → `docs/design-playbook.md` 1.1 절에 primitive 직접 사용 금지 RULE 추가됨.
+**v5 리팩터 근거** — v4 semantic 이 다크모드에서 커버리지가 부족해, 실제 랜딩 작업 중 primitive 를 직접 꺼내 쓸 수밖에 없었다. v5 는 dark stop 확장 + sunken/outline 3단 + icon 패밀리 + alpha 신설로 그 갭을 메웠고, 실증 실험(Figma `2084-1006` 라이트 / `2084-235` 다크) 에서 semantic 만으로 두 모드 모두 정상 표현 확인. → `docs/design-playbook.md` 1.1 절에 primitive 직접 사용 금지 RULE 추가됨.
 
 **Breaking changes — `/apply-tokens` 이전 반드시 코드 마이그레이션 필요**:
 
@@ -324,7 +329,7 @@ Figma 파일 이동: `F9DCw53UeJLEz1HPtuZSb1/141:51` (v4) → `hopt0qZUlSeBDJPeb
 | ADD | `space/0` | | |
 | ADD | Primitive Status 3 → 6 stops | | 모드별 다른 stop 사용 |
 
-**Alpha base 색 미확정** — Figma 카드에 % 라벨만 표시돼 있고 hex 값은 노출되지 않는다. 본 문서는 이름에서 파생한 값(black=`#0A0A0F`, white=`#FFFFFF`, mint=`mint/500 #09ECC6`)을 잠정 표기했다. `/apply-tokens` 이전에 dana 컨펌 필요.
+**Alpha base 색 미확정** — Figma 카드에 % 라벨만 표시돼 있고 hex 값은 노출되지 않는다. 본 문서는 이름에서 파생한 값(black=`#0A0A0F`, white=`#FFFFFF`, mint=`mint/500 #09ECC6`)을 잠정 표기했다. **이 잠정값으로 `/apply-tokens` 를 진행해도 된다** — Figma 에 hex 가 노출되면 다음 `/sync-figma` 때 실제 값으로 교체된다.
 
 **Shadow 확장 예정** — v5 changelog 에 shadow xs/sm/md/lg + brand-glow sm/md/lg 확장 항목이 있으나 이번 sync 범위(컬러 전용)에서는 반영하지 않음. 별도 shadow sync 시점에 처리.
 

@@ -1,5 +1,10 @@
 # Component Variants & Token Utility Cheatsheet
 
+> ⤳ vendored from ax-design-system @ 9a6e7c5 · doc-sha 3b52aab4332e · 정본 변경 시 재동기화
+> 원격은 `git@github.wrtn.club:wrtn-tech/ax-design-system.git` 브랜치 `develop`. 이 레포에서의 보관 위치는 `docs/` 가 아니라 `.claude/design-system/` 이다 — 이 레포의 `docs/` 는 고객 산출물 유출 방지를 위해 통째로 git 추적 제외이기 때문. 사유는 `design-playbook.md` "10. 프로젝트별 슬롯" 참조.
+
+> ⤳ vendor: required — 코드 어휘 SSOT 라 `check:design` 게이트와 `/design-review` 루브릭이 이 문서를 근거로 판정한다. 모든 소비 레포가 가져간다.
+
 > Wrtn AX 디자인 시스템(`docs/design-system.md`)이 shadcn/ui 코드에서 어떻게 노출되는지를
 > 정리한 단일 SSOT 문서. **적용 대상**: 본 레포(`@wrtn/nextjs-shadcn`).
 
@@ -34,7 +39,7 @@ PoC essential 최소 셋으로 디자이너가 확정한 컴포넌트 패밀리.
 | 8   | **Select**      | `select.tsx` ✅                  |
 | 9   | **Checkbox**    | `checkbox.tsx` ✅                |
 
-> **참고 — Figma 에는 없지만 코드에 있는 부수 컴포넌트**: `alert.tsx`, `label.tsx`, `separator.tsx`, `textarea.tsx`. 단순 utility 라 별도 디자인 안 함. 사용 가능하나 Figma SSOT 가 아니므로 시각 변경 시 디자이너 컨펌 필요.
+> **참고 — Figma 에는 없지만 코드에 있는 부수 컴포넌트**: `alert.tsx`, `label.tsx`, `separator.tsx`, `textarea.tsx`, `dropdown-menu.tsx`. 단순 utility 라 별도 디자인 안 함. 사용 가능하나 Figma SSOT 가 아니므로 시각 변경 시 디자이너 컨펌 필요. (dropdown-menu 는 어드민 유형의 컬럼 필터·row 삼점 메뉴·팀 스위처 표준 primitive — `02-admin.md` 매핑 참조, 서브컴포넌트는 1번 섹션 Composite 항목.)
 
 각 컴포넌트의 variant 호출법은 1번 섹션 참조. variant 상세 (spec, anatomy, padding 등) 은 추후 별도 작업으로 보강 예정 (`/sync-figma-components` 가능성).
 
@@ -78,7 +83,7 @@ shadcn 컴포넌트의 `variant` prop 으로 사용 가능한 값.
 | `destructive` | 파괴적 액션 (삭제 등)    | `bg-status-error-default text-text-black`                 |
 | `link`        | 인라인 링크              | `text-primary-main underline-offset-4`                    |
 
-Sizes: `default`, `sm`, `lg`, `icon`.
+Sizes: `default`, `sm`, `lg`, `icon`(36px), `icon-sm`(32px — 어드민 등 밀도 높은 화면의 아이콘 버튼 표준. `size='icon'` 에 `className='size-8'` 를 반복해 덮는 재발명을 막기 위해 2026-08-05 승격 — greenfield 소비 검증에서 같은 override 가 7곳 발견됨).
 
 > **v5 에서 Button `accent` variant 삭제** (2026-07-22). accent 강조가 필요하면
 > `<Badge variant='accent'>` 또는 `bg-accent-subtle text-accent-solid` utility 를 사용한다.
@@ -141,7 +146,40 @@ Dialog / Select / Checkbox 는 단일 cva variant 가 아닌 서브컴포넌트 
 
 #### Checkbox (`src/components/ui/checkbox.tsx`)
 
-단일 컴포넌트. props: `checked`, `onCheckedChange`, `disabled`. shadcn 표준 Radix wrapping. 체크 시 `bg-primary-main` 적용.
+단일 컴포넌트. props: `checked`(`boolean | 'indeterminate'`), `onCheckedChange`, `disabled`. shadcn 표준 Radix wrapping. 체크·부분선택(indeterminate) 시 `bg-primary-main` + Check/Minus 글리프 (3상태 스타일 — 테이블 헤더 "페이지 전체 선택"의 일부 선택 상태용, 2026-08-05 추가).
+
+#### DropdownMenu (`src/components/ui/dropdown-menu.tsx`)
+
+base-ui `Menu` wrapping. 어드민 컬럼 필터·row 삼점 메뉴·팀 스위처의 표준 primitive (`docs/layout-types/02-admin.md` shadcn 매핑). ESC 닫힘·화살표 이동·포커스 복귀·`aria-expanded` 를 primitive 가 제공하므로 raw `div` 재구현 금지.
+
+| 서브컴포넌트               | 역할                                                                     |
+| -------------------------- | ------------------------------------------------------------------------ |
+| `DropdownMenu`             | 루트                                                                     |
+| `DropdownMenuTrigger`      | 트리거 — `render={<Button …/>}` 로 DS 버튼을 그대로 승격 (base-ui 패턴) |
+| `DropdownMenuContent`      | 메뉴 popup portal (`align` / `side` 지원)                                |
+| `DropdownMenuItem`         | 개별 항목 — **variant: `default` \| `destructive`** (삭제류는 destructive) |
+| `DropdownMenuCheckboxItem` | 다중 선택 항목 (`checked` / `onCheckedChange` / `closeOnClick={false}`)  |
+| `DropdownMenuLabel`        | 섹션 라벨 — **반드시 `DropdownMenuGroup` 안에서 사용** (base-ui 는 Group 밖 GroupLabel 에서 런타임 크래시 — greenfield 2차 검증에서 실제 발생) |
+| `DropdownMenuSeparator`    | 구분선                                                                   |
+| `DropdownMenuGroup` 외     | Sub/Radio/Shortcut 등 base-ui Menu 표준 조합                             |
+
+사용 예: `<DropdownMenu><DropdownMenuTrigger render={<Button variant='ghost' size='icon' />}><MoreHorizontal /></DropdownMenuTrigger><DropdownMenuContent align='end'><DropdownMenuItem>편집</DropdownMenuItem><DropdownMenuItem variant='destructive'>삭제</DropdownMenuItem></DropdownMenuContent></DropdownMenu>`
+
+#### Pagination (`src/components/ui/pagination.tsx`)
+
+목록·테이블 페이지 이동의 표준 primitive. `PaginationLink` 는 내부적으로 `Button` 을 재사용해 상태별 시각을 정본 토큰과 자동 동기화한다 — `isActive` 시 `outline` variant, 평상시 `ghost`.
+
+| 서브컴포넌트           | 역할                                                         |
+| ---------------------- | ------------------------------------------------------------ |
+| `Pagination`           | 루트 `<nav aria-label='pagination'>`                         |
+| `PaginationContent`    | `<ul>` 컨테이너 (item 간 gap-1)                              |
+| `PaginationItem`       | 개별 `<li>` wrapper                                          |
+| `PaginationLink`       | 페이지 번호 링크 — `isActive` boolean, `size` (기본 `icon`)   |
+| `PaginationPrevious`   | 이전 페이지 (기본 텍스트 `이전`, `text` prop 으로 override)   |
+| `PaginationNext`       | 다음 페이지 (기본 텍스트 `다음`, `text` prop 으로 override)   |
+| `PaginationEllipsis`   | `…` 축약 표시 (aria-hidden, sr-only 는 `추가 페이지`)         |
+
+사용 예: `<Pagination><PaginationContent><PaginationItem><PaginationPrevious href='?page=1' /></PaginationItem><PaginationItem><PaginationLink href='?page=1'>1</PaginationLink></PaginationItem><PaginationItem><PaginationLink href='?page=2' isActive>2</PaginationLink></PaginationItem><PaginationItem><PaginationEllipsis /></PaginationItem><PaginationItem><PaginationNext href='?page=3' /></PaginationItem></PaginationContent></Pagination>`
 
 ---
 
@@ -193,7 +231,8 @@ shadcn variant 로 표현 안 되는 케이스(혹은 새 컴포넌트 작성 �
 > **v5 에서 `accent/solid`·`accent/subtle` 이 정식 분리됐다.** primary fill 위 텍스트는
 > `text-text-black` 을 쓴다 (`text-primary-foreground` 는 shadcn alias — 금지, playbook 1.1).
 > shadcn alias `bg-accent`(= `primary/main`)·`bg-accent-soft` 를 canonical 로 재배선하는
-> 작업은 시각 변화가 따르므로 마이그레이션 백로그로 남긴다 (dana 컨펌 필요).
+> 작업은 시각 변화가 따르므로 마이그레이션 백로그로 남긴다 (일괄 재배선 시점은 미정 —
+> 개별 화면에서 먼저 canonical 로 바꾸는 것은 언제든 가능하다).
 
 ### Status (error / success / warning / info)
 
@@ -222,8 +261,9 @@ v5 canonical — `status/{family}/{subtle|default|emphasis}` 3단계:
 `mint-*`, `gray-*`, `red-*`, `amber-*`, `green-*`, `blue-*`, `alpha-*` primitive 는
 `globals.css` / `tokens.ts` 안에서 semantic 이 참조하는 원천으로만 존재한다.
 컴포넌트 / 화면 코드에서 직접 사용하지 않는다 (`docs/design-playbook.md` 1.1 RULE).
-필요한 semantic 이 없으면 primitive 로 때우지 말고 dana 에게 문의해
-`design-system.md` 에 semantic 을 먼저 추가한다.
+필요한 semantic 이 없으면 primitive 를 그대로 꺼내 쓰지 않는다. 가장 가까운 기존
+semantic 으로 대체하고, 대체가 없으면 정본 레포의 `docs/proposals/` 에 신규 semantic 제안을 남긴 뒤
+사용처에 `ds-allow` 주석으로 제안 경로를 걸어 진행한다.
 
 ---
 
@@ -258,16 +298,18 @@ helper 가 필요하면 `import { typography } from '@/lib/typography'` — 27 �
 
 ---
 
-## 5. 검증 / Playground
+## 5. 검증 / 컴포넌트 화면
 
-`/playground` 페이지에서 모든 variant 와 토큰을 시각적으로 확인할 수 있다:
+`/components` 에서 부품별로 variant 와 상태를 확인할 수 있다. 인덱스 카드는 썸네일 이미지가 아니라 **실제로 렌더된 컴포넌트**이고, 각 부품 페이지에 variant · size · state 와 사용 지침이 있다:
 
 ```bash
-pnpm dev   # → http://localhost:3000/playground
+pnpm dev   # → http://localhost:3000/components
 ```
 
-playground 의 "토큰" 탭에는 현재 모드의 모든 semantic 토큰이 색상 swatch 와 함께 노출되며,
-"Buttons" / "Badges" / "Alerts" 섹션에서 cva variant 가 모두 시연된다.
+토큰 쪽은 `/foundations` 가 맡는다 — `/foundations/color` 에 현재 모드의 모든 semantic 토큰이
+색상 swatch 와 함께 나오고, `/foundations/typography` 와 `/foundations/scale` 이 나머지를 덮는다.
+cva variant 는 각 부품 페이지(`/components/button` · `/components/badge` · `/components/alert` …)에서
+size · state 와 함께 시연된다.
 
 ---
 
