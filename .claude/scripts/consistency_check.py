@@ -9,6 +9,7 @@
   기계가 확실히 판정할 수 있는 것만 골라 검사한다.
   - 기능명세서(FS)의 우선순위가 근거 REQ에서 제대로 상속됐나
   - FS의 추진 단계(P1~)가 REQ 레지스트리의 단계와 일치하나
+  - 활성 MUST/SHOULD REQ에 FS가 있나 (REQ→FS 역커버리지 — '요구사항은 있는데 기능 명세가 없음')
   - 모든 MUST FS가 WBS에 배치됐나
   - 화면(SC)마다 와이어프레임·본 HTML 산출물이 존재하나
   - 화면 HTML이 명세·주석도해로 상호 링크되고, 가리키는 주석도해가 실재하나
@@ -211,6 +212,25 @@ def check_project(proj_dir):
             warn(f"근거 REQ와 추진 단계가 다른 FS: {', '.join(sorted(bad_st))}")
         if no_req:
             warn(f"레지스트리에 있는 근거 REQ를 찾지 못한 FS: {fmt(no_req)}")
+
+        # --- 2b. REQ→FS 역커버리지 (요구사항은 있는데 기능 명세가 없음) ---
+        #   FS→REQ(위 2번)만 보면 "REQ만 올리고 FS를 안 만든" 구멍을 못 잡는다.
+        #   MUST는 곧 만들기로 한 것이므로 FS가 없으면 ❌. SHOULD는 뒤 단계일 수 있어 ⚠️.
+        head("REQ→FS 커버리지 (활성 REQ에 FS가 있는가)")
+        fs_reqs = set()
+        for _fid, (_pr, _st, _reqs) in fs_rows.items():
+            fs_reqs |= set(_reqs)
+        must_no_fs = [r for r, (pr, _s) in registry.items()
+                      if pr == "MUST" and r not in fs_reqs]
+        should_no_fs = [r for r, (pr, _s) in registry.items()
+                        if pr == "SHOULD" and r not in fs_reqs]
+        if must_no_fs:
+            err(f"FS가 없는 MUST REQ (요구사항만 있고 기능 명세 없음): {fmt(must_no_fs)}")
+        else:
+            ok("MUST REQ 전수 — FS 연결됨")
+        if should_no_fs:
+            warn("FS가 없는 SHOULD REQ — 뒤 단계(2·3단계) SHOULD는 정상(그 단계 FS "
+                 f"채번 전이면 여기 뜬다), 1단계 SHOULD면 누락: {fmt(should_no_fs)}")
 
         # --- 3. MUST FS의 WBS 배치 ---
         if wbs_text.strip():
