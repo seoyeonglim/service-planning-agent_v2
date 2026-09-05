@@ -251,6 +251,13 @@ def build_index(proj_dir):
 </div>
 <footer>이 문서는 자동 생성물입니다 — 화면 HTML을 만들거나 수정한 뒤
 <code>python3 .claude/scripts/generate_screen_index.py</code> 로 재생성하세요.</footer>
+<!-- 리뷰 패널 — 실제 서비스에는 없다. 화면들의 확인 현황과 상태 목록을 한 자리에서 보고, 누르면 본 HTML 이 그 상태로 열린다.
+     프로젝트에 _review-catalog.js·_review-panel.js 가 있을 때만 붙는다(없으면 404 로 조용히 지나간다). -->
+<script src="_ds-tokens.js"></script>
+<script src="_theme.js"></script>
+<script src="_review-catalog.js"></script>
+<script src="_review-panel.js"></script>
+<script>if (typeof mountReviewPanel === 'function') mountReviewPanel({{ screen: null, mode: 'static', paths: {{ screens: './', wireframes: '../../assets/wireframes/', spec: '../03_screen_spec.md', index: 'index.html' }} }});</script>
 </body>
 </html>
 """
